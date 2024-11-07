@@ -1,1 +1,17 @@
- 
+# 基础依赖
+pyyaml>=6.0
+pillow>=9.0.0
+opencv-python>=4.5.0
+numpy>=1.20.0
+
+# OCR支持
+paddlepaddle>=2.4.0
+paddleocr>=2.6.0
+
+# 日志和工具
+loguru>=0.6.0
+python-dotenv>=0.19.0
+
+# 测试相关
+pytest>=7.0.0
+pytest-cov>=3.0.0 
