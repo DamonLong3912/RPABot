@@ -1,0 +1,55 @@
+# Python虚拟环境
+venv/
+env/
+ENV/
+
+# Python编译文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 分发/打包
+dist/
+build/
+*.egg-info/
+*.egg
+
+# 单元测试/覆盖率报告
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+
+# IDE配置
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+
+# 日志文件
+*.log
+logs/
+
+# 项目特定文件
+# OCR临时文件
+*.paddleocr/
+
+# 截图输出
+screenshots/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境配置
+.env
+.env.local
+
+# 临时文件
+tmp/
+temp/ 

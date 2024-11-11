@@ -4,7 +4,13 @@ echo "开始配置RPA Framework环境..."
 
 # 检查Python版本
 python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-if (( $(echo "$python_version < 3.8" | bc -l) )); then
+major_version=$(echo $python_version | cut -d. -f1)
+minor_version=$(echo $python_version | cut -d. -f2)
+
+if [ "$major_version" -eq 3 ] && [ "$minor_version" -ge 8 ]; then
+    # 版本符合要求，继续执行
+    :
+else
     echo "错误: 需要Python 3.8或更高版本"
     exit 1
 fi
