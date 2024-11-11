@@ -6,7 +6,7 @@ prerequisites:
   app:
     package: "com.didi.oil"  # 滴滴加油APP的正确包名
     version: "6.2.4"  # 指定版本号
-    apk_path: "${ASSETS_DIR}/didi_gas.apk"  # 使用环境变量指定assets目录
+    apk_path: "didi_gas.apk"  # 相对于assets目录的路径
   device:
     min_android: "7.0"
     required_permissions: ["INTERNET", "ACCESS_FINE_LOCATION"]  # 需要的权限
@@ -17,7 +17,7 @@ steps:
     params:
       package: "${prerequisites.app.package}"
       min_version: "${prerequisites.app.version}"
-      apk_path: "${prerequisites.app.apk_path}"
+      apk_path: "${ASSETS_DIR}/didi_gas.apk"  # 直接使用完整路径
       force_install: false  # 如果已安装且版本正确则不重新安装
 
   - name: "检查设备版本"

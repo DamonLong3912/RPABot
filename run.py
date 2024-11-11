@@ -20,11 +20,14 @@ def parse_args():
 def setup_dev_env():
     """配置开发环境"""
     # 设置项目根目录
-    project_root = Path(__file__).parent
+    project_root = Path(__file__).parent.absolute()
     os.environ['RPA_PROJECT_ROOT'] = str(project_root)
     
     # 设置资源目录
     os.environ['RPA_ASSETS_DIR'] = str(project_root / 'rpa' / 'assets')
+    
+    # 设置日志目录
+    os.environ['RPA_LOG_DIR'] = str(project_root / 'logs')
     
     # 设置日志级别为DEBUG
     os.environ['RPA_LOG_LEVEL'] = 'DEBUG'
@@ -34,20 +37,26 @@ def setup_dev_env():
     logger.info("开发环境配置:")
     logger.info(f"项目根目录: {os.environ['RPA_PROJECT_ROOT']}")
     logger.info(f"资源目录: {os.environ['RPA_ASSETS_DIR']}")
+    logger.info(f"日志目录: {os.environ['RPA_LOG_DIR']}")
     logger.info(f"日志级别: {os.environ['RPA_LOG_LEVEL']}")
 
 def main():
     args = parse_args()
     
+    # 确保日志文件名有效
+    if not args.log:
+        args.log = 'run.log'
+    
     # 设置日志
     log_level = logging.DEBUG if args.debug or args.dev else logging.INFO
-    setup_logger(args.log, log_level)
-    logger = logging.getLogger(__name__)
     
     # 开发环境配置
     if args.dev:
         setup_dev_env()
+        logger = setup_logger(args.log, log_level)
         logger.info("运行在开发环境模式")
+    else:
+        logger = setup_logger(args.log, log_level)
     
     try:
         # 读取配置文件
