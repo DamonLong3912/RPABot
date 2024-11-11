@@ -2,6 +2,8 @@ import subprocess
 import re
 from typing import List
 from loguru import logger
+import time
+import select
 
 class AppHelper:
     def __init__(self, device_id: str):
@@ -15,50 +17,89 @@ class AppHelper:
         
     def check_and_install_app(self, package: str, min_version: str = None, 
                              apk_path: str = None, force_install: bool = False) -> bool:
-        """检查并安装应用
+        """检查应用版本，如果需要则启动安装过程
         
-        Args:
-            package: 应用包名
-            min_version: 最低版本要求
-            apk_path: APK文件路径
-            force_install: 是否强制重新安装
-            
         Returns:
-            bool: 安装是否成功
+            bool: 是否需要安装/更新
         """
         try:
-            # 检查应用是否已安装
             installed_version = self._get_app_version(package)
             
+            need_install = False
             if not installed_version:
-                if not apk_path:
-                    raise ValueError(f"应用 {package} 未安装且未提供APK路径")
-                    
-                self.logger.info(f"正在安装应用: {package}")
-                self._install_apk(apk_path)
-                return True
-                
-            # 检查版本
-            if min_version and not force_install:
+                need_install = True
+            elif min_version and not force_install:
                 if self._compare_versions(installed_version, min_version) < 0:
-                    if not apk_path:
-                        raise ValueError(f"应用版本过低 ({installed_version} < {min_version}) 且未提供APK路径")
-                        
-                    self.logger.info(f"正在更新应用: {package}")
-                    self._install_apk(apk_path)
-                    return True
-                    
-            elif force_install and apk_path:
-                self.logger.info(f"强制重新安装应用: {package}")
-                self._install_apk(apk_path)
+                    need_install = True
+            elif force_install:
+                need_install = True
+                
+            if need_install:
+                if not apk_path:
+                    raise ValueError(f"需要安装应用但未提供APK路径")
+                # 只启动安装过程，不等待完成
+                self._start_install(apk_path)
                 return True
                 
-            return True
+            return False
             
         except Exception as e:
             self.logger.error(f"应用安装检查失败: {str(e)}")
             raise
+
+    def _start_install(self, apk_path: str) -> None:
+        """启动APK安装过程，不等待完成"""
+        try:
+            # 使用 Popen 而不是 run，这样不会等待命令完成
+            process = subprocess.Popen(
+                ['adb', '-s', self.device_id, 'install', '-r', '-g', apk_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1  # 行缓冲
+            )
             
+            # 使用非阻塞方式读取第一行输出
+            # 等待最多3秒
+            ready = select.select([process.stdout], [], [], 3)[0]
+            if ready:
+                stdout_line = process.stdout.readline()
+                if "Performing Streamed Install" not in stdout_line:
+                    raise RuntimeError(f"安装启动失败: {stdout_line}")
+            
+            self.logger.info("APK安装已启动")
+            
+        except Exception as e:
+            raise RuntimeError(f"启动APK安装失败: {str(e)}")
+
+    def verify_app_installed(self, package: str, timeout: int = 60) -> bool:
+        """验证应用是否已成功安装
+        
+        Args:
+            package: 包名
+            timeout: 超时时间(秒)
+            
+        Returns:
+            bool: 是否安装成功
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                result = subprocess.run(
+                    ['adb', '-s', self.device_id, 'shell', 'pm', 'list', 'packages', package],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                if package in result.stdout:
+                    return True
+            except subprocess.CalledProcessError:
+                pass
+                
+            time.sleep(1)
+            
+        return False
+
     def _get_app_version(self, package: str) -> str:
         """获取应用版本号"""
         try:
@@ -75,16 +116,6 @@ class AppHelper:
             
         except subprocess.CalledProcessError:
             return None
-            
-    def _install_apk(self, apk_path: str) -> None:
-        """安装APK文件"""
-        try:
-            subprocess.run(
-                ['adb', '-s', self.device_id, 'install', '-r', apk_path],
-                check=True
-            )
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"APK安装失败: {str(e)}")
             
     def _compare_versions(self, version1: str, version2: str) -> int:
         """比较版本号"""

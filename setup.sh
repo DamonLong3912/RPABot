@@ -41,9 +41,15 @@ fi
 echo "检查Android设备连接..."
 adb devices
 
+# 创建必要的目录
+echo "创建必要的目录..."
+mkdir -p logs
+mkdir -p temp
+mkdir -p debug
+
 # 设置执行权限
 chmod +x run.py
 
 echo "环境配置完成！"
 echo "可以通过以下命令运行示例流程："
-python run.py --config flows/didi_gas_flow.yaml --dev
+python run.py --config flows/didi_gas_flow.yaml --debug

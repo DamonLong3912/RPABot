@@ -7,7 +7,7 @@ import yaml
 import os
 from pathlib import Path
 from rpa.core.base_bot import BaseBot
-from rpa.utils.logger import setup_logger
+from rpa.utils.logger import setup_logger, get_logger
 
 def parse_args():
     parser = argparse.ArgumentParser(description='RPA Framework 运行器')
@@ -33,7 +33,7 @@ def setup_dev_env():
     os.environ['RPA_LOG_LEVEL'] = 'DEBUG'
     
     # 打印环境信息
-    logger = logging.getLogger(__name__)
+    logger = get_logger(__name__)
     logger.info("开发环境配置:")
     logger.info(f"项目根目录: {os.environ['RPA_PROJECT_ROOT']}")
     logger.info(f"资源目录: {os.environ['RPA_ASSETS_DIR']}")
@@ -48,15 +48,14 @@ def main():
         args.log = 'run.log'
     
     # 设置日志
-    log_level = logging.DEBUG if args.debug or args.dev else logging.INFO
+    log_level = "DEBUG" if args.debug or args.dev else "INFO"
+    setup_logger(args.log, log_level)
+    logger = get_logger(__name__)
     
     # 开发环境配置
     if args.dev:
         setup_dev_env()
-        logger = setup_logger(args.log, log_level)
         logger.info("运行在开发环境模式")
-    else:
-        logger = setup_logger(args.log, log_level)
     
     try:
         # 读取配置文件
@@ -73,8 +72,8 @@ def main():
         logger.info(f"流程版本: {flow_config.get('version')}")
         logger.info(f"流程描述: {flow_config.get('description')}")
         
-        # 初始化机器人
-        bot = BaseBot()
+        # 初始化机器人，启用调试模式
+        bot = BaseBot(debug=args.debug)
         
         # 执行流程
         logger.info(f"开始执行流程: {flow_config.get('name', '未命名流程')}")

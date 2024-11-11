@@ -4,12 +4,25 @@ import subprocess
 from typing import Dict, Any, List
 from pathlib import Path
 from ..utils.app_helper import AppHelper  # 导入AppHelper类
+import time
+import yaml
+from ..utils.logger import get_logger
 
 class BaseBot:
     """RPA基础机器人类"""
     
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, debug=False):
+        self.logger = get_logger(__name__)
+        self.debug = debug
+        self.debug_dir = None
+        
+        if self.debug:
+            # 创建调试输出目录
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            self.debug_dir = Path("debug") / timestamp
+            self.debug_dir.mkdir(parents=True, exist_ok=True)
+            self.logger.info(f"调试模式已启用，输出目录: {self.debug_dir}")
+        
         # 设置环境变量
         self.env = {
             "ASSETS_DIR": str(Path(__file__).parent.parent / "assets"),
@@ -160,6 +173,20 @@ class BaseBot:
         step_type = step.get('action')
         step_name = step.get('name', '未命名步骤')
         
+        if self.debug:
+            # 保存步骤配置
+            step_debug_dir = self.debug_dir / f"{step_name}"
+            step_debug_dir.mkdir(exist_ok=True)
+            
+            with open(step_debug_dir / "step_config.yaml", "w", encoding="utf-8") as f:
+                yaml.dump(step, f, allow_unicode=True)
+        
+        # 检查条件
+        conditions = step.get('conditions', [])
+        if conditions and not self._check_conditions(conditions):
+            self.logger.info(f"跳过步骤 {step_name}: 条件不满足")
+            return
+        
         self.logger.info(f"执行步骤: {step_name} (动作: {step_type})")
         
         # 解析参数中的变量
@@ -168,12 +195,49 @@ class BaseBot:
         for key, value in params.items():
             resolved_params[key] = self._resolve_variable(value)
             
-        # 根据动作类型调用相应的处理函数
-        if step_type == 'check_and_install_app':
-            self.app_helper.check_and_install_app(**resolved_params)
-        elif step_type == 'check_android_version':
-            self.app_helper.check_android_version(**resolved_params)
-        elif step_type == 'grant_permissions':
-            self.app_helper.check_and_grant_permissions(**resolved_params)
+        # 执行动作并保存结果
+        result = self._execute_action(step_type, resolved_params)
+        self._save_step_result(step_name, result)
+
+    def _check_conditions(self, conditions: List[Dict[str, Any]]) -> bool:
+        """检查步骤执行条件"""
+        for condition in conditions:
+            if condition['type'] == 'step_result':
+                step_name = condition['step']
+                expected_value = condition['value']
+                if self._get_step_result(step_name) != expected_value:
+                    return False
+        return True
+
+    def _save_step_result(self, step_name: str, result: Any) -> None:
+        """保存步骤执行结果"""
+        if not hasattr(self, '_step_results'):
+            self._step_results = {}
+        self._step_results[step_name] = result
+
+    def _get_step_result(self, step_name: str) -> Any:
+        """获取步骤执行结果"""
+        return getattr(self, '_step_results', {}).get(step_name)
+
+    def _execute_action(self, action_type: str, params: Dict[str, Any]) -> Any:
+        """执行指定类型的动作"""
+        # 应用管理相关动作
+        if action_type == "check_and_install_app":
+            return self.app_helper.check_and_install_app(**params)
+        elif action_type == "wait_for_app_installed":
+            return self.app_helper.verify_app_installed(**params)
+            
+        # OCR相关动作
+        elif action_type in ["wait_for_ocr_text", "click_by_ocr", "wait_and_click_ocr_text"]:
+            if not hasattr(self, 'ocr_actions'):
+                from .actions.ocr_actions import OCRActions
+                self.ocr_actions = OCRActions(self)
+                
+            if action_type == "wait_for_ocr_text":
+                return self.ocr_actions.wait_for_ocr_text(params)
+            elif action_type == "click_by_ocr":
+                return self.ocr_actions.click_by_ocr(params)
+            else:  # wait_and_click_ocr_text
+                return self.ocr_actions.wait_and_click_ocr_text(params)
         else:
-            raise ValueError(f"未知的动作类型: {step_type}")
+            raise ValueError(f"未知的动作类型: {action_type}")

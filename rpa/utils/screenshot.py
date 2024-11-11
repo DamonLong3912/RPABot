@@ -2,17 +2,21 @@ from typing import List, Optional, Tuple
 import os
 from PIL import Image
 from loguru import logger
+import subprocess
+import io
 
 class ScreenshotHelper:
-    def __init__(self, device):
+    def __init__(self, device_id: str):
         """
         初始化截图助手
         
         Args:
-            device: uiautomator2设备实例
+            device_id: 设备ID
         """
-        self.device = device
+        self.device_id = device_id
         self.logger = logger
+        self.scale = 0.5  # 内部缩放比例
+        self.quality = 50  # JPEG质量
 
     def take_screenshot(self, 
                        save_path: str,
@@ -36,22 +40,67 @@ class ScreenshotHelper:
             # 生成文件名
             import time
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filename = f"{filename_prefix}_{timestamp}.png"
+            filename = f"{filename_prefix}_{timestamp}.jpg"  # 使用jpg格式
             full_path = os.path.join(save_path, filename)
             
-            # 获取截图
-            self.device.screenshot(full_path)
+            # 先保存到设备上的临时文件
+            temp_file = "/data/local/tmp/screenshot.png"
+            subprocess.run(
+                ['adb', '-s', self.device_id, 'shell', 'screencap', '-p', temp_file],
+                check=True
+            )
             
-            # 如果指定了区域，裁剪图片
-            if region:
-                with Image.open(full_path) as img:
+            # 从设备拉取文件
+            subprocess.run(
+                ['adb', '-s', self.device_id, 'pull', temp_file, full_path],
+                check=True
+            )
+            
+            # 删除设备上的临时文件
+            subprocess.run(
+                ['adb', '-s', self.device_id, 'shell', 'rm', temp_file],
+                check=True
+            )
+            
+            # 使用 PIL 处理图片
+            with Image.open(full_path) as img:
+                # 如果指定了区域，先裁剪
+                if region:
                     x1, y1, x2, y2 = region
-                    cropped = img.crop((x1, y1, x2, y2))
-                    cropped.save(full_path)
+                    img = img.crop((x1, y1, x2, y2))
+                
+                # 缩放图片
+                original_size = img.size
+                new_size = tuple(int(dim * self.scale) for dim in img.size)
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
+                
+                # 转换为灰度图
+                img = img.convert('L')
+                
+                # 保存为JPEG格式
+                img.save(full_path, 'JPEG', quality=self.quality, optimize=True)
             
-            self.logger.info(f"截图已保存: {full_path}")
+            # 记录原始尺寸和缩放尺寸
+            self.logger.debug(f"原始尺寸: {original_size}, 缩放后尺寸: {new_size}")
+            
             return full_path
             
         except Exception as e:
             self.logger.error(f"截图失败: {str(e)}")
-            raise 
+            raise
+
+    def get_scale_factor(self) -> float:
+        """获取当前缩放比例"""
+        return self.scale
+
+    def get_real_coordinates(self, x: int, y: int) -> Tuple[int, int]:
+        """将缩放后的坐标转换为实际坐标
+        
+        Args:
+            x: 缩放图片上的x坐标
+            y: 缩放图片上的y坐标
+            
+        Returns:
+            实际屏幕上的坐标(x, y)
+        """
+        return (int(x / self.scale), int(y / self.scale))

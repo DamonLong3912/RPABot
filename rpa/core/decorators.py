@@ -1,6 +1,8 @@
 import functools
 import time
-from loguru import logger
+from ..utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 def log_step(func):
     """记录步骤执行的装饰器"""
@@ -30,4 +32,4 @@ def retry_step(max_retries=3, delay=1):
                     logger.warning(f"步骤 {func.__name__} 执行失败，{attempt + 1}/{max_retries} 次重试")
                     time.sleep(delay)
         return wrapper
-    return decorator 
+    return decorator

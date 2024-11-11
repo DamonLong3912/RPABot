@@ -75,6 +75,29 @@ rpa_framework/
 - [测试计划](tests/test_plan.md) - 整体测试计划
 - [测试用例](tests/test_cases.md) - 详细测试用例
 
+### OCR相关动作
+- wait_for_ocr_text: 等待指定文字出现
+- click_by_ocr: 通过OCR识别文字并点击
+
+这些动作支持以下参数:
+- text: 要识别的文字
+- timeout: 超时时间(秒)
+- screenshot_region: 截图区域[x1,y1,x2,y2]
+- retry_times: 重试次数(仅click_by_ocr)
+
+## OCR功能优化
+
+### 图像预处理
+- 自动缩放（默认0.5倍）
+- 灰度转换
+- JPEG压缩优化（质量50）
+- 智能坐标转换
+
+### 调试支持
+- 按步骤组织的调试信息
+- 截图和OCR结果可视化
+- 坐标计算过程日志
+
 ## 最近更新
 - 2024-03-25: 添加滴滴加油油价爬取流程
 - 2024-03-21: 实现基础日志功能和BaseBot类 (v1.4)

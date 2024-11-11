@@ -4,29 +4,40 @@ version: "1.0"
 
 prerequisites:
   app:
-    package: "com.didi.oil"  # 滴滴加油APP的正确包名
-    version: "6.2.4"  # 指定版本号
-    apk_path: "didi_gas.apk"  # 相对于assets目录的路径
+    package: "com.didi.oil"
+    version: "6.2.4"
+    apk_path: "didi_gas.apk"
   device:
     min_android: "7.0"
-    required_permissions: ["INTERNET", "ACCESS_FINE_LOCATION"]  # 需要的权限
+    required_permissions: ["INTERNET", "ACCESS_FINE_LOCATION"]
 
 steps:
-  - name: "检查并安装应用"
+  - name: "启动应用安装"
     action: "check_and_install_app"
     params:
       package: "${prerequisites.app.package}"
       min_version: "${prerequisites.app.version}"
-      apk_path: "${ASSETS_DIR}/didi_gas.apk"  # 直接使用完整路径
-      force_install: false  # 如果已安装且版本正确则不重新安装
+      apk_path: "${ASSETS_DIR}/didi_gas.apk"
+      force_install: false
 
-  - name: "检查设备版本"
-    action: "check_android_version"
+  - name: "等待并点击安装确认"
+    action: "wait_and_click_ocr_text"
     params:
-      min_version: "${prerequisites.device.min_android}"
+      text: "继续安装"
+      timeout: 30
+      check_interval: 1
+      screenshot_region: [50, 1600, 1030, 2400]
+    conditions:
+      - type: "step_result"
+        step: "启动应用安装"
+        value: true
 
-  - name: "授予权限"
-    action: "grant_permissions"
+  - name: "等待安装完成"
+    action: "wait_for_app_installed"
     params:
       package: "${prerequisites.app.package}"
-      permissions: "${prerequisites.device.required_permissions}"
+      timeout: 60
+    conditions:
+      - type: "step_result"
+        step: "启动应用安装"
+        value: true
