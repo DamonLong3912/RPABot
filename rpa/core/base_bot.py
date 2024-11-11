@@ -1,11 +1,39 @@
+import os
 import logging
 from typing import Dict, Any
+from pathlib import Path
 
 class BaseBot:
     """RPA基础机器人类"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+        # 设置环境变量
+        self.env = {
+            "ASSETS_DIR": str(Path(__file__).parent.parent / "assets"),
+        }
+        
+    def _resolve_variable(self, value: str) -> str:
+        """解析配置中的变量引用
+        
+        Args:
+            value: 包含变量引用的字符串,如 "${ASSETS_DIR}/some_file"
+            
+        Returns:
+            解析后的字符串
+        """
+        if not isinstance(value, str):
+            return value
+            
+        if "${" not in value:
+            return value
+            
+        # 替换环境变量
+        result = value
+        for key, val in self.env.items():
+            result = result.replace(f"${{{key}}}", val)
+            
+        return result
         
     def run_flow(self, flow_config: Dict[str, Any]) -> None:
         """执行流程
@@ -45,15 +73,24 @@ class BaseBot:
                 raise ValueError(f"缺少必要的配置项: {field}")
                 
     def _execute_step(self, step: Dict[str, Any]) -> None:
-        """执行单个流程步骤
-        
-        Args:
-            step (Dict[str, Any]): 步骤配置字典
-        """
-        step_type = step.get('type')
+        """执行单个流程步骤"""
+        step_type = step.get('action')
         step_name = step.get('name', '未命名步骤')
         
-        self.logger.info(f"执行步骤: {step_name} (类型: {step_type})")
+        self.logger.info(f"执行步骤: {step_name} (动作: {step_type})")
         
-        # TODO: 根据步骤类型调用相应的处理函数
-        # 这里后续可以通过装饰器或工厂模式来注册和管理不同类型的步骤处理器
+        # 解析参数中的变量
+        params = step.get('params', {})
+        resolved_params = {}
+        for key, value in params.items():
+            resolved_params[key] = self._resolve_variable(value)
+            
+        # 根据动作类型调用相应的处理函数
+        if step_type == 'check_and_install_app':
+            self.app_helper.check_and_install_app(**resolved_params)
+        elif step_type == 'check_android_version':
+            self.app_helper.check_android_version(**resolved_params)
+        elif step_type == 'grant_permissions':
+            self.app_helper.check_and_grant_permissions(**resolved_params)
+        else:
+            raise ValueError(f"未知的动作类型: {step_type}")

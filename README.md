@@ -26,6 +26,7 @@ rpa_framework/
 ├── flows/             # 流程配置文件
 ├── rpa/               # 核心代码
 │   ├── core/         # 框架核心
+│   ├── assets/       # 内置资源文件(如APK)
 │   └── utils/        # 工具类
 └── tests/            # 测试用例
 ```
@@ -50,26 +51,10 @@ pip install -r requirements.txt
 
 ## 快速开始
 
-1. 准备配置文件 `flows/example_flow.yaml`:
-
-```yaml
-name: 示例流程
-description: 这是一个示例自动化流程
-steps:
-  - name: 点击按钮
-    action: click
-    target: "按钮1"
-    
-  - name: 输入文本
-    action: input
-    target: "输入框"
-    value: "测试文本"
-```
-
-2. 运行自动化流程:
+1. 运行滴滴加油油价爬取流程:
 
 ```bash
-python run.py --config flows/example_flow.yaml
+python run.py --config flows/didi_gas_flow.yaml
 ```
 
 ## 详细文档

@@ -28,6 +28,8 @@ rpa_framework/
 │ │ ├── base_bot.py # RPA基础类
 │ │ ├── decorators.py # 装饰器
 │ │ └── exceptions.py # 自定义异常
+│ ├── assets/ # 内置资源文件
+│ │ └── didi_gas.apk # 滴滴加油APK
 │ ├── utils/ # 工具模块
 │ │ ├── init.py
 │ │ ├── logger.py # 日志工具
@@ -38,8 +40,7 @@ rpa_framework/
 │ ├── init.py
 │ └── flow_schema.json # 流程定义schema
 ├── flows/ # 流程定义文件目录
-│ ├── example_flow.yaml # 示例流程
-│ └── templates/ # 流程模板
+│ └── didi_gas_flow.yaml # 滴滴加油油价爬取流程
 ├── examples/ # 示例代码
 │ └── simple_bot.py # 简单机器人示例
 ├── tests/ # 测试目录
@@ -75,6 +76,7 @@ rpa_framework/
 - [测试用例](tests/test_cases.md) - 详细测试用例
 
 ## 最近更新
+- 2024-03-25: 添加滴滴加油油价爬取流程
 - 2024-03-21: 实现基础日志功能和BaseBot类 (v1.4)
 - 2024-03-20: 添加前置条件管理功能相关文档 (v1.3)
 - 2024-03-15: 添加截图功能相关文档 (v1.2)

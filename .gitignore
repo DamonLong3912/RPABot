@@ -52,4 +52,8 @@ Thumbs.db
 
 # 临时文件
 tmp/
-temp/ 
+temp/
+
+# APK files
+*.apk
+!rpa/assets/didi_gas.apk  # 允许提交滴滴加油的apk

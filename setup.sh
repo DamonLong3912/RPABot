@@ -46,4 +46,4 @@ chmod +x run.py
 
 echo "环境配置完成！"
 echo "可以通过以下命令运行示例流程："
-echo "python run.py --config flows/example_flow.yaml" 
+python run.py --config flows/didi_gas_flow.yaml --dev

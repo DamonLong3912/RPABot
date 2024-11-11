@@ -1,0 +1,32 @@
+name: "滴滴加油油价爬取"
+description: "自动获取滴滴加油APP中的油价信息"
+version: "1.0"
+
+prerequisites:
+  app:
+    package: "com.didi.oil"  # 滴滴加油APP的正确包名
+    version: "6.2.4"  # 指定版本号
+    apk_path: "${ASSETS_DIR}/didi_gas.apk"  # 使用环境变量指定assets目录
+  device:
+    min_android: "7.0"
+    required_permissions: ["INTERNET", "ACCESS_FINE_LOCATION"]  # 需要的权限
+
+steps:
+  - name: "检查并安装应用"
+    action: "check_and_install_app"
+    params:
+      package: "${prerequisites.app.package}"
+      min_version: "${prerequisites.app.version}"
+      apk_path: "${prerequisites.app.apk_path}"
+      force_install: false  # 如果已安装且版本正确则不重新安装
+
+  - name: "检查设备版本"
+    action: "check_android_version"
+    params:
+      min_version: "${prerequisites.device.min_android}"
+
+  - name: "授予权限"
+    action: "grant_permissions"
+    params:
+      package: "${prerequisites.app.package}"
+      permissions: "${prerequisites.device.required_permissions}"
