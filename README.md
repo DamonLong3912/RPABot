@@ -11,6 +11,8 @@
 - 灵活扩展：提供插件机制，方便扩展新功能
 - 日志追踪：详细的执行日志，便于调试和监控
 - 性能优化：针对OCR场景的图像预处理优化
+- 应用管理：支持应用安装、启动和状态检查
+- 智能重试：关键操作自动重试机制
 
 ## 环境要求
 
@@ -55,7 +57,23 @@ pip install -r requirements.txt
 1. 运行滴滴加油油价爬取流程:
 
 ```bash
-python run.py --config flows/didi_gas_flow.yaml
+python run.py --config flows/didi_gas_flow.yaml --debug
+```
+
+## 流程示例
+
+```yaml
+steps:
+  - name: "检查应用安装"
+    action: "check_and_install_app"
+    params:
+      package: "com.example.app"
+      apk_path: "${ASSETS_DIR}/app.apk"
+
+  - name: "启动应用"
+    action: "start_app"
+    params:
+      package: "com.example.app"
 ```
 
 ## 详细文档

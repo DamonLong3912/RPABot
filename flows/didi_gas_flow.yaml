@@ -5,20 +5,17 @@ version: "1.0"
 prerequisites:
   app:
     package: "com.didi.oil"
-    version: "6.2.4"
     apk_path: "didi_gas.apk"
   device:
     min_android: "7.0"
     required_permissions: ["INTERNET", "ACCESS_FINE_LOCATION"]
 
 steps:
-  - name: "启动应用安装"
+  - name: "检查应用安装"
     action: "check_and_install_app"
     params:
       package: "${prerequisites.app.package}"
-      min_version: "${prerequisites.app.version}"
       apk_path: "${ASSETS_DIR}/didi_gas.apk"
-      force_install: false
 
   - name: "等待并点击安装确认"
     action: "wait_and_click_ocr_text"
@@ -29,8 +26,8 @@ steps:
       screenshot_region: [50, 1600, 1030, 2400]
     conditions:
       - type: "step_result"
-        step: "启动应用安装"
-        value: true
+        step: "检查应用安装"
+        value: "need_install"
 
   - name: "等待安装完成"
     action: "wait_for_app_installed"
@@ -39,5 +36,10 @@ steps:
       timeout: 60
     conditions:
       - type: "step_result"
-        step: "启动应用安装"
-        value: true
+        step: "检查应用安装"
+        value: "need_install"
+
+  - name: "启动应用"
+    action: "start_app"
+    params:
+      package: "${prerequisites.app.package}"

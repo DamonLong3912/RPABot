@@ -205,8 +205,20 @@ class BaseBot:
             if condition['type'] == 'step_result':
                 step_name = condition['step']
                 expected_value = condition['value']
-                if self._get_step_result(step_name) != expected_value:
-                    return False
+                step_result = self._get_step_result(step_name)
+                
+                # 如果期望值是字符串，直接检查结果中是否包含该键
+                if isinstance(expected_value, str):
+                    if isinstance(step_result, dict):
+                        if not step_result.get(expected_value, False):
+                            return False
+                    else:
+                        if step_result != expected_value:
+                            return False
+                # 否则进行相等性比较
+                else:
+                    if step_result != expected_value:
+                        return False
         return True
 
     def _save_step_result(self, step_name: str, result: Any) -> None:
@@ -226,6 +238,8 @@ class BaseBot:
             return self.app_helper.check_and_install_app(**params)
         elif action_type == "wait_for_app_installed":
             return self.app_helper.verify_app_installed(**params)
+        elif action_type == "start_app":
+            return self.app_helper.start_app(**params)
             
         # OCR相关动作
         elif action_type in ["wait_for_ocr_text", "click_by_ocr", "wait_and_click_ocr_text"]:
