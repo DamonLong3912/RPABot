@@ -1,6 +1,8 @@
 # BaseBot API
 
 ## 类定义
+
+### BaseBot
 ```python
 class BaseBot:
     def __init__(self, debug=False):
@@ -33,19 +35,6 @@ def _execute_step(self, step: Dict[str, Any]) -> None:
     
     Args:
         step: 步骤配置字典
-    """
-```
-
-### _check_conditions
-```python
-def _check_conditions(self, conditions: List[Dict[str, Any]]) -> bool:
-    """检查步骤执行条件
-    
-    Args:
-        conditions: 条件列表
-        
-    Returns:
-        bool: 条件是否满足
     """
 ```
 
@@ -109,13 +98,18 @@ def _execute_action(self, action_type: str, params: Dict[str, Any]) -> Any:
     """
 ```
 
-## 调试支持
+## 支持的动作类型
 
-调试模式下，BaseBot 会：
-1. 创建调试输出目录
-2. 保存每个步骤的配置
-3. 记录详细的执行日志
-4. 保存截图和OCR结果
+1. 应用管理
+   - check_and_install_app: 检查并安装应用
+   - wait_for_app_installed: 等待应用安装完成
+   - start_app: 启动应用
+
+2. OCR相关
+   - wait_and_click_ocr_text: 等待并点击文字
+   - handle_popups_until_target: 处理弹窗直到目标出现
+
+## 调试支持
 
 ### 调试目录结构
 ```
@@ -127,3 +121,31 @@ debug/
         ├── annotated.png      # 标注后的截图
         └── ocr_results.yaml   # OCR结果
 ```
+
+### 调试功能
+- 自动创建调试目录
+- 保存步骤配置
+- 记录详细执行日志
+- 保存OCR识别结果
+- 可视化标注截图
+
+## 使用示例
+
+```python
+# 初始化
+bot = BaseBot(debug=True)
+
+# 加载流程配置
+with open("flow.yaml", "r", encoding="utf-8") as f:
+    flow_config = yaml.safe_load(f)
+
+# 执行流程
+bot.run_flow(flow_config)
+```
+
+## 环境变量
+
+- ASSETS_DIR: 资源文件目录
+- RPA_PROJECT_ROOT: 项目根目录
+- RPA_LOG_DIR: 日志目录
+- RPA_LOG_LEVEL: 日志级别

@@ -21,21 +21,26 @@ def setup_logger(log_file: str = "run.log", log_level="INFO"):
     # 移除默认的sink
     logger.remove()
     
-    # 添加控制台输出
+    # 修改日志格式，添加进程ID
+    format_str = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+    
+    # 控制台输出
     logger.add(
         sink=lambda msg: print(msg),
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        format=format_str,
         level=log_level,
-        colorize=True
+        colorize=True,
+        enqueue=True  # 启用队列模式，避免多进程日志混乱
     )
     
-    # 添加文件输出
+    # 文件输出
     logger.add(
         sink=log_file,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+        format=format_str,
         level=log_level,
         rotation="10 MB",
-        retention="1 week"
+        retention="1 week",
+        enqueue=True  # 启用队列模式
     )
 
 def get_logger(name: str = None):

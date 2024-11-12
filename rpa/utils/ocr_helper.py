@@ -10,7 +10,16 @@ class OCRHelper:
         Args:
             lang: 识别语言,'ch'(中文),'en'(英文)等
         """
-        self.ocr = PaddleOCR(use_angle_cls=True, lang=lang)
+        self.ocr = PaddleOCR(
+            use_angle_cls=True,
+            lang=lang,
+            show_log=False,  # 关闭PaddleOCR的调试日志
+            cls_batch_num=1,  # 减小批处理大小
+            rec_batch_num=1,
+            det_db_score_mode='fast',  # 使用快速模式
+            use_mp=True,  # 启用多进程
+            total_process_num=2  # 使用2个进程
+        )
         self.logger = logger
 
     def extract_text(self, image_path: str, keywords: List[str] = None, 

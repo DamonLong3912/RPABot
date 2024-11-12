@@ -43,3 +43,20 @@ steps:
     action: "start_app"
     params:
       package: "${prerequisites.app.package}"
+
+  - name: "处理启动弹窗直到进入主页面"
+    action: "handle_popups_until_target"
+    params:
+      timeout: 100
+      check_interval: 1
+      screenshot_region: [0, 0, 1080, 2400]
+      target_text: "输入目的地，查找附近加油站"
+      popups:
+        - name: "协议与规则"
+          patterns: ["同意", "协议与规则"]
+          action: "click_first"
+          priority: 1
+        - name: "位置权限"
+          patterns: ["仅在使用中允许", "是否允许“滴滴加油”获取模糊定位"]
+          action: "click_first"
+          priority: 1

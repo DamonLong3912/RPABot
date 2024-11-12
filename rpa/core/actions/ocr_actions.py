@@ -62,107 +62,54 @@ class OCRActions:
         with open(debug_dir / "ocr_results.yaml", "w", encoding="utf-8") as f:
             yaml.dump(ocr_results, f, allow_unicode=True)
 
-    def wait_for_ocr_text(self, params: Dict[str, Any]) -> bool:
-        """等待指定文字出现
+    def _click_ocr_result(self, result: Dict[str, Any], screenshot_region: List[int] = None) -> bool:
+        """点击OCR识别结果的中心位置
         
         Args:
-            params:
-                text: 要等待的文字
-                timeout: 超时时间(秒)
-                check_interval: 检查间隔(秒)
-                screenshot_region: 截图区域[x1,y1,x2,y2]
+            result: OCR识别结果
+            screenshot_region: 截图区域[x1,y1,x2,y2]
+        
+        Returns:
+            bool: 点击是否成功
         """
-        text = params['text']
-        timeout = params.get('timeout', 10)
-        check_interval = params.get('check_interval', 2)
-        region = params.get('screenshot_region')
+        # 计算相对于裁剪区域的中心点（在缩放图片上的坐标）
+        box = result['box']
+        center_x = (box[0][0] + box[2][0]) // 2
+        center_y = (box[0][1] + box[2][1]) // 2
         
-        self.logger.info(f"等待文字出现: {text}, 检查间隔: {check_interval}秒")
-        start_time = time.time()
+        # 转换为实际坐标（考虑缩放因子）
+        real_x, real_y = self.screenshot_helper.get_real_coordinates(center_x, center_y)
         
-        while time.time() - start_time < timeout:
-            # 获取截图
-            screenshot = self.screenshot_helper.take_screenshot(
-                save_path="temp",
-                region=region
+        # 如果有截图区域，加上区域偏移
+        if screenshot_region:
+            real_x += screenshot_region[0]
+            real_y += screenshot_region[1]
+        
+        self.logger.debug(f"坐标计算过程:")
+        self.logger.debug(f"OCR原始坐标: ({center_x}, {center_y})")
+        self.logger.debug(f"缩放因子: {self.screenshot_helper.get_scale_factor()}")
+        if screenshot_region:
+            self.logger.debug(f"截图区域偏移: ({screenshot_region[0]}, {screenshot_region[1]})")
+        self.logger.debug(f"最终点击坐标: ({real_x}, {real_y})")
+        # 执行点击
+        try:
+            subprocess.run(
+                ['adb', '-s', self.bot.device_id, 'shell', 'input', 'tap',
+                 str(int(real_x)), str(int(real_y))],
+                check=True
             )
-            
-            # OCR识别
-            results = self.ocr_helper.extract_text(
-                screenshot,
-                keywords=[text]
-            )
-            
-            # 保存调试信息
-            self._save_debug_info(
-                f"wait_for_ocr_text_{int(time.time())}", 
-                screenshot, 
-                results,
-                region
-            )
-            
-            if results:
-                self.logger.info(f"找到目标文字: {text}")
-                return True
-            
-            self.logger.debug(f"未找到文字: {text}, 等待 {check_interval} 秒后重试")
-            time.sleep(check_interval)
-        
-        self.logger.warning(f"等待超时: {text}")
-        return False
-        
-    def click_by_ocr(self, params: Dict[str, Any]) -> bool:
-        """通过OCR识别文字并点击
-        
-        Args:
-            params:
-                text: 要点击的文字
-                timeout: 等待超时(秒)
-                retry_times: 重试次数
-                check_interval: 检查间隔(秒)
-                screenshot_region: 截图区域[x1,y1,x2,y2]
-        """
-        text = params['text']
-        timeout = params.get('timeout', 5)
-        retry_times = params.get('retry_times', 3)
-        check_interval = params.get('check_interval', 2)
-        region = params.get('screenshot_region')
-        
-        for attempt in range(retry_times):
-            # 获取截图
-            screenshot = self.screenshot_helper.take_screenshot(
-                save_path="temp",
-                region=region
-            )
-            
-            # OCR识别
-            results = self.ocr_helper.extract_text(
-                screenshot,
-                keywords=[text]
-            )
-            
-            if results:
-                # 获取文字中心点坐标
-                box = results[0]['box']
-                center_x = (box[0][0] + box[2][0]) // 2
-                center_y = (box[0][1] + box[2][1]) // 2
-                
-                # 点击
-                self.bot.device.click(center_x, center_y)
-                return True
-            
-            if attempt < retry_times - 1:  # 不是最后一次尝试
-                self.logger.debug(f"未找到文字: {text}, 等待 {check_interval} 秒后重试")
-                time.sleep(check_interval)
-        
-        return False
+            self.logger.info(f"点击坐标: ({real_x}, {real_y})")
+            return True
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"点击操作失败: {e}")
+            return False
 
     def wait_and_click_ocr_text(self, params: Dict[str, Any]) -> bool:
         """等待指定文字出现并点击"""
         text = params['text']
         timeout = params.get('timeout', 30)
         check_interval = params.get('check_interval', 2)
-        region = params.get('screenshot_region')
+        screenshot_region = params.get('screenshot_region')
         
         self.logger.info(f"等待文字出现: {text}, 检查间隔: {check_interval}秒")
         start_time = time.time()
@@ -175,67 +122,156 @@ class OCRActions:
         
         while time.time() - start_time < timeout:
             # 获取截图
-            self.logger.debug(f"正在截图...")
             screenshot = self.screenshot_helper.take_screenshot(
                 save_path=str(step_debug_dir / "screenshots") if self.bot.debug else "temp",
-                region=region,
+                region=screenshot_region,
                 filename_prefix=f"attempt_{attempt}"
             )
-            self.logger.debug(f"截图已保存: {screenshot}")
             
             # OCR识别
-            self.logger.debug(f"开始OCR识别...")
             results = self.ocr_helper.extract_text(
                 screenshot,
                 keywords=[text]
             )
-            self.logger.debug(f"OCR识别结果: {results}")
             
-            # 保存调试信息到步骤目录下
+            # 保存调试信息
             if self.bot.debug:
                 self._save_debug_info(
                     f"attempt_{attempt}", 
                     screenshot, 
                     results,
-                    region,
+                    screenshot_region,
                     debug_dir=step_debug_dir
                 )
                 attempt += 1
             
             if results:
                 self.logger.info(f"找到目标文字: {text}")
-                # 找到文字，执行点击
-                box = results[0]['box']
-                
-                # 计算相对于裁剪区域的中心点（在缩放图片上的坐标）
-                center_x = (box[0][0] + box[2][0]) // 2
-                center_y = (box[0][1] + box[2][1]) // 2
-                
-                # 转换为实际坐标
-                real_x, real_y = self.screenshot_helper.get_real_coordinates(center_x, center_y)
-                
-                # 如果有区域设置，加上偏移量得到实际屏幕坐标
-                if region:
-                    x_offset, y_offset = region[0], region[1]
-                    screen_x = real_x + x_offset
-                    screen_y = real_y + y_offset
-                    self.logger.debug(f"区域偏移: ({x_offset}, {y_offset})")
-                    self.logger.debug(f"缩放坐标: ({center_x}, {center_y})")
-                    self.logger.debug(f"实际坐标: ({screen_x}, {screen_y})")
-                else:
-                    screen_x, screen_y = real_x, real_y
-                
-                # 点击
-                subprocess.run(
-                    ['adb', '-s', self.bot.device_id, 'shell', 'input', 'tap', 
-                     str(int(screen_x)), str(int(screen_y))],
-                    check=True
-                )
-                self.logger.info(f"点击坐标: ({screen_x}, {screen_y})")
-                return True
+                # 使用公共点击方法
+                if self._click_ocr_result(results[0], screenshot_region):
+                    return True
+                self.logger.debug(f"点击失败，将重试")
             
             self.logger.debug(f"未找到文字: {text}, {check_interval}秒后重试")
             time.sleep(check_interval)
         
         self.logger.warning(f"等待超时: {text}")
+        return False
+
+    def handle_popups_until_target(self, params: Dict[str, Any]) -> bool:
+        """处理弹窗直到出现目标文本
+        
+        Args:
+            params:
+                timeout: 超时时间(秒)
+                check_interval: 检查间隔(秒)
+                target_text: 目标文本
+                screenshot_region: 截图区域[x1,y1,x2,y2]，默认全屏
+                popups: 弹窗配置列表
+        """
+        timeout = params.get('timeout', 60)
+        check_interval = params.get('check_interval', 1)
+        target_text = params.get('target_text')
+        screenshot_region = params.get('screenshot_region')
+        popups = params.get('popups', [])
+        
+        # 按优先级排序弹窗配置
+        popups.sort(key=lambda x: x.get('priority', 999))
+        
+        start_time = time.time()
+        attempt = 1
+        
+        while time.time() - start_time < timeout:
+            # 获取截图
+            if self.bot.debug:
+                debug_dir = self.bot.debug_dir / f"处理启动弹窗直到进入主页面/attempt_{attempt}"
+                debug_dir.mkdir(parents=True, exist_ok=True)
+                screenshot = self.screenshot_helper.take_screenshot(
+                    save_path=str(debug_dir),
+                    filename_prefix="screenshot",
+                    region=screenshot_region
+                )
+            else:
+                screenshot = self.screenshot_helper.take_screenshot(
+                    save_path="temp",
+                    filename_prefix="popup_check",
+                    region=screenshot_region
+                )
+            
+            # 检查目标文本
+            target_results = self.ocr_helper.extract_text(
+                screenshot,
+                keywords=[target_text]
+            )
+            
+            # 保存调试信息
+            if self.bot.debug:
+                self._save_debug_info(
+                    f"attempt_{attempt}",
+                    screenshot,
+                    target_results,
+                    screenshot_region,
+                    debug_dir=debug_dir
+                )
+            
+            if target_results:
+                self.logger.info(f"检测到目标文本: {target_text}")
+                return True
+            
+            # 检查并处理弹窗
+            popup_handled = False
+            
+            for popup in popups:
+                patterns = popup['patterns']
+                action = popup.get('action', 'click_first')
+                
+                # 获取所有文本并匹配
+                all_results = self.ocr_helper.extract_text(screenshot)
+                matched_results = [r for r in all_results if r['text'] in patterns]
+                
+                # 保存调试信息
+                if self.bot.debug:
+                    with open(debug_dir / f"popup_{popup['name']}.yaml", "w", encoding="utf-8") as f:
+                        yaml.dump({
+                            'popup_name': popup['name'],
+                            'patterns': patterns,
+                            'matched_results': matched_results,
+                            'all_results': all_results,
+                            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
+                        }, f, allow_unicode=True)
+                
+                if matched_results:
+                    self.logger.info(f"检测到弹窗: {popup['name']}")
+                    
+                    # 根据action类型选择要点击的目标
+                    if action == 'click_first':
+                        # 按照patterns的顺序找到第一个匹配的结果
+                        target_result = None
+                        for pattern in patterns:
+                            for result in matched_results:
+                                if result['text'] == pattern:
+                                    target_result = result
+                                    break
+                            if target_result:
+                                break
+                        
+                        if target_result:
+                            self.logger.debug(f"将点击文本: {target_result['text']}")
+                            # 使用公共点击方法
+                            if self._click_ocr_result(target_result, screenshot_region):
+                                self.logger.info(f"点击弹窗 {popup['name']} 的 {target_result['text']}")
+                                popup_handled = True
+                                time.sleep(1)  # 等待动画完成
+                            else:
+                                self.logger.warning(f"点击弹窗 {popup['name']} 失败")
+                    else:
+                        self.logger.warning(f"未支持的action类型: {action}")
+            
+            if not popup_handled:
+                self.logger.debug(f"当前未检测到任何弹窗，继续等待目标文本: {target_text}")
+                time.sleep(check_interval)
+            
+            attempt += 1
+        
+        self.logger.warning(f"超时未检测到目标文本: {target_text}")
         return False

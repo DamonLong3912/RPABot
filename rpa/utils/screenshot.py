@@ -103,4 +103,5 @@ class ScreenshotHelper:
         Returns:
             实际屏幕上的坐标(x, y)
         """
+        # 只考虑缩放因子，不考虑区域偏移
         return (int(x / self.scale), int(y / self.scale))

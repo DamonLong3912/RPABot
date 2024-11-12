@@ -27,11 +27,6 @@ steps:         # 步骤列表
         value: "期望值"
 ```
 
-### 变量引用
-- 环境变量: ${ENV_NAME}
-- 配置变量: ${prerequisites.app.package}
-- 步骤结果: ${steps.step_name.result}
-
 ## 支持的动作类型
 
 ### 应用管理
@@ -55,27 +50,51 @@ steps:         # 步骤列表
   action: "start_app"
   params:
     package: "com.example.app"
-    max_retries: 5
-    retry_interval: 2
 ```
 
-### OCR操作
+### OCR相关
 ```yaml
-# 等待文字出现
-- name: "等待文字"
-  action: "wait_for_ocr_text"
+# 等待并点击文字
+- name: "等待并点击按钮"
+  action: "wait_and_click_ocr_text"
   params:
-    text: "目标文字"
+    text: "继续安装"
     timeout: 30
-    screenshot_region: [x1, y1, x2, y2]
+    check_interval: 1
+    screenshot_region: [50, 1600, 1030, 2400]
 
-# 点击文字
-- name: "点击文字"
-  action: "click_by_ocr"
+# 处理弹窗
+- name: "处理启动弹窗"
+  action: "handle_popups_until_target"
   params:
-    text: "目标文字"
-    retry_times: 3
+    target_text: "附近油站"
+    screenshot_region: [0, 0, 1080, 2400]
+    timeout: 100
+    check_interval: 1
+    popups:
+      - name: "协议与规则"
+        patterns: ["同意", "协议与规则"]
+        action: "click_first"
+        priority: 1
+      - name: "位置权限"
+        patterns: ["仅在使用中允许", "位置信息"]
+        action: "click_first"
+        priority: 2
 ```
+
+## 变量引用
+
+### 环境变量
+- ${ASSETS_DIR}: 资源目录
+- ${RPA_PROJECT_ROOT}: 项目根目录
+- ${RPA_LOG_DIR}: 日志目录
+
+### 配置变量
+- ${prerequisites.app.package}: 应用包名
+- ${prerequisites.app.apk_path}: APK路径
+
+### 步骤结果
+- ${steps.step_name.result}: 步骤执行结果
 
 ## 条件配置
 
@@ -87,14 +106,15 @@ conditions:
     value: "期望值"
 ```
 
-### 示例
-```yaml
-- name: "等待安装完成"
-  action: "wait_for_app_installed"
-  params:
-    package: "${prerequisites.app.package}"
-  conditions:
-    - type: "step_result"
-      step: "检查应用安装"
-      value: "need_install"
+## 调试支持
+
+### 调试目录结构
+```
+debug/
+└── {timestamp}/
+    └── {step_name}/
+        ├── step_config.yaml    # 步骤配置
+        ├── screenshot.png      # 原始截图
+        ├── annotated.png      # 标注后的截图
+        └── ocr_results.yaml   # OCR结果
 ```

@@ -242,16 +242,14 @@ class BaseBot:
             return self.app_helper.start_app(**params)
             
         # OCR相关动作
-        elif action_type in ["wait_for_ocr_text", "click_by_ocr", "wait_and_click_ocr_text"]:
+        elif action_type in ["wait_and_click_ocr_text", "handle_popups", "handle_popups_until_target"]:
             if not hasattr(self, 'ocr_actions'):
                 from .actions.ocr_actions import OCRActions
                 self.ocr_actions = OCRActions(self)
                 
-            if action_type == "wait_for_ocr_text":
-                return self.ocr_actions.wait_for_ocr_text(params)
-            elif action_type == "click_by_ocr":
-                return self.ocr_actions.click_by_ocr(params)
-            else:  # wait_and_click_ocr_text
+            if action_type == "wait_and_click_ocr_text":
                 return self.ocr_actions.wait_and_click_ocr_text(params)
+            elif action_type == "handle_popups_until_target":
+                return self.ocr_actions.handle_popups_until_target(params)
         else:
             raise ValueError(f"未知的动作类型: {action_type}")

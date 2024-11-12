@@ -73,15 +73,10 @@ rpa_framework/
 - [测试计划](tests/test_plan.md) - 整体测试计划
 - [测试用例](tests/test_cases.md) - 详细测试用例
 
-### OCR相关动作
-- wait_for_ocr_text: 等待指定文字出现
-- click_by_ocr: 通过OCR识别文字并点击
-
 这些动作支持以下参数:
 - text: 要识别的文字
 - timeout: 超时时间(秒)
 - screenshot_region: 截图区域[x1,y1,x2,y2]
-- retry_times: 重试次数(仅click_by_ocr)
 
 ## OCR功能优化
 
