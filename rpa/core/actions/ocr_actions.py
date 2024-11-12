@@ -1,17 +1,19 @@
 from typing import Dict, Any, List
-from ..base_bot import BaseBot
+from .base_action import BaseAction
 from ...utils.ocr_helper import OCRHelper
 from ...utils.screenshot import ScreenshotHelper
 from ...utils.logger import get_logger
+from ..base_bot import BaseBot
 import time
 import yaml
 import subprocess
+import numpy as np
 
-class OCRActions:
+class OCRActions(BaseAction):
     """OCR相关动作处理类"""
     
     def __init__(self, bot: BaseBot):
-        self.bot = bot
+        super().__init__(bot)
         self.ocr_helper = OCRHelper()
         self.screenshot_helper = ScreenshotHelper(bot.device_id)
         self.logger = get_logger(__name__)
@@ -399,4 +401,114 @@ class OCRActions:
             
         except subprocess.CalledProcessError as e:
             self.logger.error(f"输入文本失败: {e}")
+            return False
+
+class GetTextFromRegionAction(BaseAction):
+    """从指定区域获取文本"""
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        region = params.get('region')
+        screenshot_region = params.get('screenshot_region')
+        save_to = params['save_to']
+        step_name = params.get('name', 'get_text_from_region')
+        
+        # 优先使用region，如果没有则使用screenshot_region
+        capture_region = region if region is not None else screenshot_region
+        
+        if capture_region is None:
+            self.logger.error("必须提供region或screenshot_region参数")
+            return False
+        
+        try:
+            # 获取截图
+            screenshot = self.bot.screenshot_helper.take_screenshot(
+                save_path="temp",
+                filename_prefix="text_region",
+                region=capture_region
+            )
+            
+            # 执行OCR识别
+            results = self.bot.ocr_helper.extract_text(screenshot)
+            
+            # 合并所有文本
+            text = ' '.join([r['text'] for r in results])
+            
+            # 保存结果
+            self.bot.set_variable(save_to, text)
+            
+            self.logger.info(f"从区域 {capture_region} 获取文本: {text}")
+
+            # 如果是调试模式，保存调试信息
+            if self.bot.debug:
+                annotations = []
+                for result in results:
+                    box = result['box']
+                    
+                    # 计算文本位置（使用框的左上角）
+                    text_x = int(box[0][0])
+                    text_y = int(box[0][1]) - 10
+                    
+                    # 添加文本标注
+                    annotations.append({
+                        'type': 'text',
+                        'data': [
+                            f"{result['text']} ({result.get('confidence', 0):.2f})",
+                            text_x,
+                            text_y
+                        ],
+                        'color': (0, 0, 255),
+                        'thickness': 2
+                    })
+                
+                # 保存调试截图
+                self.save_debug_screenshot(
+                    step_name=step_name,
+                    region=capture_region,
+                    annotations=annotations,
+                    extra_info={
+                        'ocr_results': results,
+                        'extracted_text': text,
+                        'save_to_variable': save_to
+                    }
+                )
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"获取区域文本失败: {str(e)}")
+            return False
+
+class CheckTextExistsAction(BaseAction):
+    """检查文本是否存在"""
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        region = params['region']
+        text = params['text']
+        save_to = params.get('save_to')
+        
+        try:
+            # 获取截图
+            screenshot = self.screenshot_helper.take_screenshot(
+                save_path="temp",
+                filename_prefix="check_text",
+                region=region
+            )
+            
+            # 执行OCR识别
+            results = self.ocr_helper.extract_text(
+                screenshot,
+                keywords=[text]
+            )
+            
+            exists = len(results) > 0
+            
+            # 如果需要保存结果
+            if save_to:
+                self.bot.set_variable(save_to, exists)
+            
+            self.logger.info(f"检查文本 '{text}' 是否存在: {exists}")
+            return exists
+            
+        except Exception as e:
+            self.logger.error(f"检查文本存在失败: {str(e)}")
             return False

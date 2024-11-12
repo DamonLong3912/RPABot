@@ -3,10 +3,12 @@ import logging
 import subprocess
 from typing import Dict, Any, List
 from pathlib import Path
-from ..utils.app_helper import AppHelper  # 导入AppHelper类
+from ..utils.app_helper import AppHelper  # 修改导入路径
 import time
 import yaml
-from ..utils.logger import get_logger
+from ..utils.logger import get_logger  # 修改导入路径
+from ..utils.screenshot import ScreenshotHelper
+from ..utils.ocr_helper import OCRHelper
 
 class BaseBot:
     """RPA基础机器人类"""
@@ -33,7 +35,9 @@ class BaseBot:
         self._init_device()
         
         # 初始化工具类
-        self.app_helper = AppHelper(self.device_id)  # 初始化AppHelper
+        self.app_helper = AppHelper(self.device_id)
+        self.screenshot_helper = ScreenshotHelper(self.device_id)
+        self.ocr_helper = OCRHelper()
         
     def _init_device(self) -> None:
         """初始化并检查Android设备
@@ -129,8 +133,16 @@ class BaseBot:
         for key, val in self.env.items():
             result = result.replace(f"${{{key}}}", str(val))
         
-        # 解析prerequisites中的变量
+        # 解析流程配置中的变量
         if hasattr(self, 'current_flow_config'):
+            # 解析 variables 中的变量
+            variables = self.current_flow_config.get('variables', {})
+            for key, val in variables.items():
+                placeholder = f"${{variables.{key}}}"
+                if placeholder in result:
+                    result = result.replace(placeholder, str(val))
+            
+            # 解析 prerequisites 中的变量
             prerequisites = self.current_flow_config.get('prerequisites', {})
             for section, section_data in prerequisites.items():
                 if isinstance(section_data, dict):
@@ -209,7 +221,7 @@ class BaseBot:
                 expected_value = condition['value']
                 step_result = self._get_step_result(step_name)
                 
-                # 如果期望值是字符串，直接检查结果中是否包含该键
+                # 如果期望值是字符串，直接查结果中是否包含键
                 if isinstance(expected_value, str):
                     if isinstance(step_result, dict):
                         if not step_result.get(expected_value, False):
@@ -243,20 +255,74 @@ class BaseBot:
         elif action_type == "start_app":
             return self.app_helper.start_app(**params)
             
-        # OCR相关动作
+        # OCR交互相关动作
         elif action_type in ["wait_and_click_ocr_text", "handle_popups_until_target", 
                             "wait_for_input_ready", "input_text"]:
-            if not hasattr(self, 'ocr_actions'):
+            if not hasattr(self, 'ocr_interactive_actions'):
                 from .actions.ocr_actions import OCRActions
-                self.ocr_actions = OCRActions(self)
+                self.ocr_interactive_actions = OCRActions(self)
                 
             if action_type == "wait_and_click_ocr_text":
-                return self.ocr_actions.wait_and_click_ocr_text(params)
+                return self.ocr_interactive_actions.wait_and_click_ocr_text(params)
             elif action_type == "handle_popups_until_target":
-                return self.ocr_actions.handle_popups_until_target(params)
+                return self.ocr_interactive_actions.handle_popups_until_target(params)
             elif action_type == "wait_for_input_ready":
-                return self.ocr_actions.wait_for_input_ready(params)
+                return self.ocr_interactive_actions.wait_for_input_ready(params)
             elif action_type == "input_text":
-                return self.ocr_actions.input_text(params)
+                return self.ocr_interactive_actions.input_text(params)
+        # UI相关动作
+        elif action_type == "wait_and_click_region":
+            if not hasattr(self, 'wait_click_action'):
+                from .actions.ui_actions import WaitAndClickRegionAction
+                self.wait_click_action = WaitAndClickRegionAction(self)
+            return self.wait_click_action.execute(params)
+        elif action_type == "scroll":
+            if not hasattr(self, 'scroll_action'):
+                from .actions.ui_actions import ScrollAction
+                self.scroll_action = ScrollAction(self)
+            return self.scroll_action.execute(params)
+        
+        # OCR识别相关动作
+        elif action_type == "get_text_from_region":
+            if not hasattr(self, 'get_text_action'):
+                from .actions.ocr_actions import GetTextFromRegionAction
+                self.get_text_action = GetTextFromRegionAction(self)
+            return self.get_text_action.execute(params)
+        elif action_type == "check_text_exists":
+            if not hasattr(self, 'check_text_action'):
+                from .actions.ocr_actions import CheckTextExistsAction
+                self.check_text_action = CheckTextExistsAction(self)
+            return self.check_text_action.execute(params)
+        
+        # 数据操作动作
+        elif action_type == "append_to_list":
+            if not hasattr(self, 'data_actions'):
+                from .actions.data_actions import AppendToListAction
+                self.data_actions = AppendToListAction(self)
+            return self.data_actions.execute(params)
+        # 通用工具动作
+        elif action_type == "sleep":
+            if not hasattr(self, 'utility_actions'):
+                from .actions.utility_actions import SleepAction
+                self.utility_actions = SleepAction(self)
+            return self.utility_actions.execute(params)
+        # 流程控制动作
+        elif action_type == "loop":
+            if not hasattr(self, 'flow_actions'):
+                from .actions.flow_actions import LoopAction
+                self.flow_actions = LoopAction(self)
+            return self.flow_actions.execute(params)
         else:
             raise ValueError(f"未知的动作类型: {action_type}")
+
+    def get_variable(self, name: str, default: Any = None) -> Any:
+        """获取变量值"""
+        if not hasattr(self, '_variables'):
+            self._variables = {}
+        return self._variables.get(name, default)
+    
+    def set_variable(self, name: str, value: Any) -> None:
+        """设置变量值"""
+        if not hasattr(self, '_variables'):
+            self._variables = {}
+        self._variables[name] = value

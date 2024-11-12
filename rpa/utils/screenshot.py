@@ -39,8 +39,7 @@ class ScreenshotHelper:
             
             # 生成文件名
             import time
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filename = f"{filename_prefix}_{timestamp}.jpg"  # 使用jpg格式
+            filename = f"{filename_prefix}.jpg"  # 使用jpg格式
             full_path = os.path.join(save_path, filename)
             
             # 先保存到设备上的临时文件
@@ -79,9 +78,6 @@ class ScreenshotHelper:
                 
                 # 保存为JPEG格式
                 img.save(full_path, 'JPEG', quality=self.quality, optimize=True)
-            
-            # 记录原始尺寸和缩放尺寸
-            self.logger.debug(f"原始尺寸: {original_size}, 缩放后尺寸: {new_size}")
             
             return full_path
             

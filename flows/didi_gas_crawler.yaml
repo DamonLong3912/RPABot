@@ -1,0 +1,106 @@
+name: "滴滴加油站信息爬取"
+description: "自动爬取滴滴加油APP中的加油站信息"
+version: "1.0"
+
+variables:
+  scroll_distance: 300  # 向上滑动的距离（像素）
+  station_data: []     # 存储爬取的加油站数据
+
+prerequisites:
+  app:
+    package: "com.didi.oil"
+
+steps:
+  - name: "启动应用"
+    action: "start_app"
+    params:
+      package: "${prerequisites.app.package}"
+
+  - name: "等待应用启动"
+    action: "sleep"
+    params:
+      seconds: 3
+
+  - name: "开始循环爬取"
+    action: "loop"
+    params:
+      max_iterations: 50  # 增加最大循环次数
+      break_conditions:
+        - type: "step_result"
+          step: "检查是否到底"
+          value: true
+      steps:
+        - name: "点击一个加油站"
+          action: "wait_and_click_region"
+          params:
+            region: [0, 1700, 1080, 2000]  # 底部tabbar上方区域
+            timeout: 10
+            check_interval: 1
+
+        - name: "等待加载"
+          action: "sleep"
+          params:
+            seconds: 2
+
+        - name: "获取加油站名称"
+          action: "get_text_from_region"
+          params:
+            region: [50, 350, 800, 480]
+            save_to: "current_station_name"
+
+        - name: "获取油价信息"
+          action: "get_text_from_region"
+          params:
+            region: [50, 550, 1050, 620]
+            save_to: "price_info"
+
+        - name: "获取地址信息"
+          action: "get_text_from_region"
+          params:
+            region: [50, 480, 1050, 550]
+            save_to: "address_info"
+
+        - name: "保存数据"
+          action: "append_to_list"
+          params:
+            list: "station_data"
+            data:
+              name: "${current_station_name}"
+              price: "${price_info}"
+              address: "${address_info}"
+
+        - name: "点击返回按钮"
+          action: "wait_and_click_region"
+          params:
+            region: [20, 120, 100, 200]  # 左上角返回按钮区域
+            timeout: 5
+
+        - name: "等待首页刷新"
+          action: "sleep"
+          params:
+            seconds: 2
+
+        - name: "向上滑动"
+          action: "scroll"
+          params:
+            direction: "up"
+            distance: "${variables.scroll_distance}"
+
+        - name: "等待列表刷新"
+          action: "sleep"
+          params:
+            seconds: 3
+
+        - name: "检查是否到底"
+          action: "check_text_exists"
+          params:
+            region: [0, 1800, 1080, 2200]
+            text: "到底了"
+            save_to: "reached_bottom"
+
+  - name: "导出数据"
+    action: "export_data"
+    params:
+      data: "${variables.station_data}"
+      format: "json"
+      filename: "gas_stations.json"
