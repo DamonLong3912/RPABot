@@ -51,5 +51,5 @@ mkdir -p debug
 chmod +x run.py
 
 echo "环境配置完成！"
-echo "可以通过以下命令运行示例流程："
-python run.py --config flows/didi_gas_flow.yaml --debug
+echo "可以通过以下命令运行滴滴加油准备流程（安装、启动和注册）："
+echo "source venv/bin/activate && python run.py --config flows/didi_gas_prepare.yaml --debug"

@@ -1,5 +1,5 @@
-name: "滴滴加油油价爬取"
-description: "自动获取滴滴加油APP中的油价信息"
+name: "滴滴加油APK安装注册"
+description: "自动安装滴滴加油并完成注册"
 version: "1.0"
 
 prerequisites:
@@ -60,3 +60,50 @@ steps:
           patterns: ["仅在使用中允许", "是否允许“滴滴加油”获取模糊定位"]
           action: "click_first"
           priority: 1
+
+  - name: "点击底部导航栏-我的"
+    action: "wait_and_click_ocr_text"
+    params:
+      text: "我的"
+      timeout: 10
+      check_interval: 1
+      screenshot_region: [0, 2200, 1080, 2400]  # 底部导航栏区域
+
+  - name: "点击手机号登录区域"
+    action: "wait_and_click_ocr_text"
+    params:
+      text: "请输入手机号"
+      timeout: 10
+      check_interval: 1
+      screenshot_region: [50, 400, 1030, 1000]  # 登录区域
+
+  - name: "等待输入框激活"
+    action: "wait_for_input_ready"
+    params:
+      timeout: 5
+      check_interval: 0.5
+
+  - name: "输入手机号"
+    action: "input_text"
+    params:
+      text: "11111111111"
+      input_type: "number"
+      clear_first: true
+      timeout: 5
+
+  - name: "点击阅读并同意复选框"
+    action: "wait_and_click_ocr_text"
+    params:
+      text: "阅读并同意"
+      timeout: 10
+      check_interval: 1
+      screenshot_region: [50, 600, 1030, 1400]  # 复选框区域
+      click_offset: [-250, 0]
+
+  - name: "点击下一步"
+    action: "wait_and_click_ocr_text"
+    params:
+      text: "下一步"
+      timeout: 10
+      check_interval: 1
+      screenshot_region: [50, 600, 1030, 1400]  # 下一步按钮区域

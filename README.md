@@ -54,10 +54,10 @@ pip install -r requirements.txt
 
 ## 快速开始
 
-1. 运行滴滴加油油价爬取流程:
+1. 运行滴滴加油准备流程（安装、启动和注册）:
 
 ```bash
-python run.py --config flows/didi_gas_flow.yaml --debug
+python run.py --config flows/didi_gas_prepare.yaml --debug
 ```
 
 ## 流程示例

@@ -15,6 +15,7 @@ class BaseBot:
         self.logger = get_logger(__name__)
         self.debug = debug
         self.debug_dir = None
+        self.current_step_index = 0  # 添加步骤序号计数器
         
         if self.debug:
             # 创建调试输出目录
@@ -143,7 +144,7 @@ class BaseBot:
     def run_flow(self, flow_config: Dict[str, Any]) -> None:
         """执行流程"""
         try:
-            # 保存当前流程配置以供变量解析使用
+            # 保存当前流程配置以变量解析使用
             self.current_flow_config = flow_config
             
             # 验证流程配置
@@ -152,6 +153,7 @@ class BaseBot:
             # 执行流程步骤
             steps = flow_config.get('steps', [])
             for step in steps:
+                self.current_step_index += 1  # 每个步骤执行前递增序号
                 self._execute_step(step)
                 
         except Exception as e:
@@ -242,7 +244,8 @@ class BaseBot:
             return self.app_helper.start_app(**params)
             
         # OCR相关动作
-        elif action_type in ["wait_and_click_ocr_text", "handle_popups", "handle_popups_until_target"]:
+        elif action_type in ["wait_and_click_ocr_text", "handle_popups_until_target", 
+                            "wait_for_input_ready", "input_text"]:
             if not hasattr(self, 'ocr_actions'):
                 from .actions.ocr_actions import OCRActions
                 self.ocr_actions = OCRActions(self)
@@ -251,5 +254,9 @@ class BaseBot:
                 return self.ocr_actions.wait_and_click_ocr_text(params)
             elif action_type == "handle_popups_until_target":
                 return self.ocr_actions.handle_popups_until_target(params)
+            elif action_type == "wait_for_input_ready":
+                return self.ocr_actions.wait_for_input_ready(params)
+            elif action_type == "input_text":
+                return self.ocr_actions.input_text(params)
         else:
             raise ValueError(f"未知的动作类型: {action_type}")

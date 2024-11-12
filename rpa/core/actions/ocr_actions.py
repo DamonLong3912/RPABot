@@ -23,8 +23,26 @@ class OCRActions:
         if not self.bot.debug:
             return
             
-        debug_dir = debug_dir or self.bot.debug_dir / step_name
-        debug_dir.mkdir(exist_ok=True)
+        step_index = self.bot.current_step_index
+        
+        # 使用step_index创建调试目录
+        if debug_dir is None:
+            # 确保step_name包含编号前缀
+            if not str(step_name).startswith(f"{step_index:03d}_"):
+                step_name = f"{step_index:03d}_{step_name}"
+            debug_dir = self.bot.debug_dir / step_name
+        else:
+            # 如果传入了debug_dir，确保其父目录包含编号前缀
+            parent_dir = debug_dir.parent
+            if parent_dir.name == self.bot.debug_dir.name:  # 如果父目录是debug根目录
+                if not str(debug_dir.name).startswith(f"{step_index:03d}_"):
+                    debug_dir = self.bot.debug_dir / f"{step_index:03d}_{debug_dir.name}"
+            else:  # 如果是子目录
+                if not str(parent_dir.name).startswith(f"{step_index:03d}_"):
+                    new_parent = self.bot.debug_dir / f"{step_index:03d}_{parent_dir.name}"
+                    debug_dir = new_parent / debug_dir.name
+        
+        debug_dir.mkdir(parents=True, exist_ok=True)
         
         # 复制截图
         import shutil
@@ -62,12 +80,14 @@ class OCRActions:
         with open(debug_dir / "ocr_results.yaml", "w", encoding="utf-8") as f:
             yaml.dump(ocr_results, f, allow_unicode=True)
 
-    def _click_ocr_result(self, result: Dict[str, Any], screenshot_region: List[int] = None) -> bool:
+    def _click_ocr_result(self, result: Dict[str, Any], screenshot_region: List[int] = None, 
+                         click_offset: List[int] = None) -> bool:
         """点击OCR识别结果的中心位置
         
         Args:
             result: OCR识别结果
             screenshot_region: 截图区域[x1,y1,x2,y2]
+            click_offset: 点击位置的偏移量[offset_x, offset_y]
         
         Returns:
             bool: 点击是否成功
@@ -76,6 +96,11 @@ class OCRActions:
         box = result['box']
         center_x = (box[0][0] + box[2][0]) // 2
         center_y = (box[0][1] + box[2][1]) // 2
+        
+        # 应用偏移量
+        if click_offset:
+            center_x += click_offset[0]
+            center_y += click_offset[1]
         
         # 转换为实际坐标（考虑缩放因子）
         real_x, real_y = self.screenshot_helper.get_real_coordinates(center_x, center_y)
@@ -87,6 +112,8 @@ class OCRActions:
         
         self.logger.debug(f"坐标计算过程:")
         self.logger.debug(f"OCR原始坐标: ({center_x}, {center_y})")
+        if click_offset:
+            self.logger.debug(f"点击偏移量: ({click_offset[0]}, {click_offset[1]})")
         self.logger.debug(f"缩放因子: {self.screenshot_helper.get_scale_factor()}")
         if screenshot_region:
             self.logger.debug(f"截图区域偏移: ({screenshot_region[0]}, {screenshot_region[1]})")
@@ -110,22 +137,28 @@ class OCRActions:
         timeout = params.get('timeout', 30)
         check_interval = params.get('check_interval', 2)
         screenshot_region = params.get('screenshot_region')
+        click_offset = params.get('click_offset', None)
         
         self.logger.info(f"等待文字出现: {text}, 检查间隔: {check_interval}秒")
         start_time = time.time()
         
         # 创建步骤专属的调试目录
         if self.bot.debug:
-            step_debug_dir = self.bot.debug_dir / f"等待并点击{text}"
+            step_index = self.bot.current_step_index
+            step_debug_dir = self.bot.debug_dir / f"{step_index:03d}_等待点击_{text}"
             step_debug_dir.mkdir(exist_ok=True)
             attempt = 1
+            
+            # 创建screenshots子目录
+            screenshots_dir = step_debug_dir / "screenshots"
+            screenshots_dir.mkdir(exist_ok=True)
         
         while time.time() - start_time < timeout:
             # 获取截图
             screenshot = self.screenshot_helper.take_screenshot(
-                save_path=str(step_debug_dir / "screenshots") if self.bot.debug else "temp",
+                save_path=str(screenshots_dir) if self.bot.debug else "temp",
                 region=screenshot_region,
-                filename_prefix=f"attempt_{attempt}"
+                filename_prefix=f"attempt_{attempt:03d}"
             )
             
             # OCR识别
@@ -137,18 +170,18 @@ class OCRActions:
             # 保存调试信息
             if self.bot.debug:
                 self._save_debug_info(
-                    f"attempt_{attempt}", 
-                    screenshot, 
+                    f"attempt_{attempt:03d}",
+                    screenshot,
                     results,
                     screenshot_region,
-                    debug_dir=step_debug_dir
+                    debug_dir=step_debug_dir / f"attempt_{attempt:03d}"
                 )
                 attempt += 1
             
             if results:
                 self.logger.info(f"找到目标文字: {text}")
-                # 使用公共点击方法
-                if self._click_ocr_result(results[0], screenshot_region):
+                # 使用公共点击方法，传入click_offset参数
+                if self._click_ocr_result(results[0], screenshot_region, click_offset):
                     return True
                 self.logger.debug(f"点击失败，将重试")
             
@@ -184,7 +217,8 @@ class OCRActions:
         while time.time() - start_time < timeout:
             # 获取截图
             if self.bot.debug:
-                debug_dir = self.bot.debug_dir / f"处理启动弹窗直到进入主页面/attempt_{attempt}"
+                step_index = self.bot.current_step_index
+                debug_dir = self.bot.debug_dir / f"{step_index:03d}_处理弹窗_{target_text}/attempt_{attempt:03d}"
                 debug_dir.mkdir(parents=True, exist_ok=True)
                 screenshot = self.screenshot_helper.take_screenshot(
                     save_path=str(debug_dir),
@@ -275,3 +309,94 @@ class OCRActions:
         
         self.logger.warning(f"超时未检测到目标文本: {target_text}")
         return False
+
+    def wait_for_input_ready(self, params: Dict[str, Any]) -> bool:
+        """等待输入框准备就绪
+        
+        Args:
+            params:
+                timeout: 超时时间(秒)
+                check_interval: 检查间隔(秒)
+        
+        Returns:
+            bool: 输入框是否就绪
+        """
+        timeout = params.get('timeout', 5)
+        check_interval = params.get('check_interval', 0.5)
+        
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            # 检查输入框状态
+            try:
+                result = subprocess.run(
+                    ['adb', '-s', self.bot.device_id, 'shell', 'dumpsys', 'input_method'],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                if "mInputShown=true" in result.stdout:
+                    self.logger.info("输入框已激活")
+                    return True
+            except subprocess.CalledProcessError as e:
+                self.logger.error(f"检查输入框状态失败: {e}")
+            
+            time.sleep(check_interval)
+        
+        self.logger.warning("等待输入框激活超时")
+        return False
+
+    def input_text(self, params: Dict[str, Any]) -> bool:
+        """输入文本
+        
+        Args:
+            params:
+                text: 要输入的文本
+                input_type: 输入型(text/number)
+                clear_first: 是否先清空输入框
+                timeout: 超时时间(秒)
+        
+        Returns:
+            bool: 是否输入成功
+        """
+        text = params['text']
+        input_type = params.get('input_type', 'text')
+        clear_first = params.get('clear_first', True)
+        timeout = params.get('timeout', 5)
+        
+        try:
+            # 如果需要先清空输入框
+            if clear_first:
+                # 模拟长按选择全部文本
+                subprocess.run(
+                    ['adb', '-s', self.bot.device_id, 'shell', 'input', 'keyevent', 'KEYCODE_MOVE_END'],
+                    check=True
+                )
+                time.sleep(0.5)
+                subprocess.run(
+                    ['adb', '-s', self.bot.device_id, 'shell', 'input', 'keyevent', 'KEYCODE_DEL'],
+                    check=True
+                )
+            
+            # 根据输入类型选择不同的输入方式
+            if input_type == 'number':
+                # 对于数字，使用keyevent模拟按键
+                for digit in text:
+                    keycode = f'KEYCODE_{digit}'
+                    subprocess.run(
+                        ['adb', '-s', self.bot.device_id, 'shell', 'input', 'keyevent', keycode],
+                        check=True
+                    )
+                    time.sleep(0.1)  # 短暂延迟确保输入稳定
+            else:
+                # 对于普通文本，使用text输入
+                subprocess.run(
+                    ['adb', '-s', self.bot.device_id, 'shell', 'input', 'text', text],
+                    check=True
+                )
+            
+            self.logger.info(f"成功输入文本: {text}")
+            return True
+            
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"输入文本失败: {e}")
+            return False
