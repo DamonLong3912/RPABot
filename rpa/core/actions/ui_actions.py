@@ -113,3 +113,86 @@ class ScrollAction(BaseAction):
         except subprocess.CalledProcessError as e:
             self.logger.error(f"滑动失败: {str(e)}")
             return False
+
+class StartAppAction(BaseAction):
+    """启动应用"""
+    def execute(self, params: Dict[str, Any]) -> bool:
+        package = params['package']
+        return self.bot.app_helper.start_app(package)
+
+class StopAppAction(BaseAction):
+    """停止应用"""
+    def execute(self, params: Dict[str, Any]) -> bool:
+        package = params['package']
+        return self.bot.app_helper.stop_app(package)
+
+class SwipeAction(BaseAction):
+    """滑动操作"""
+    def execute(self, params: Dict[str, Any]) -> bool:
+        start_x = params['start_x']
+        start_y = params['start_y']
+        end_x = params['end_x']
+        end_y = params['end_y']
+        duration = params.get('duration', 500)  # 默认500ms
+        
+        try:
+            subprocess.run([
+                'adb', '-s', self.bot.device_id, 'shell', 'input', 'swipe',
+                str(start_x), str(start_y), str(end_x), str(end_y), str(duration)
+            ], check=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"滑动操作失败: {str(e)}")
+            return False
+
+class ClickRegionAction(BaseAction):
+    """点击指定区域"""
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        region = params['region']
+        
+        # 验证区域参数
+        if len(region) != 4:
+            raise ValueError("region参数必须包含4个值: [x1, y1, x2, y2]")
+        
+        try:
+            # 如果是调试模式，保存调试信息
+            if self.bot.debug:
+                x1, y1, x2, y2 = map(int, region)
+                center_x = (x1 + x2) // 2
+                center_y = (y1 + y2) // 2
+                
+                annotations = [
+                    {
+                        'type': 'circle',
+                        'data': [center_x, center_y, 10],
+                        'color': (0, 0, 255),
+                        'thickness': -1
+                    },
+                    {
+                        'type': 'text',
+                        'data': [
+                            f"Click: ({center_x}, {center_y})",
+                            center_x + 10,
+                            center_y - 10
+                        ],
+                        'color': (0, 0, 255),
+                        'thickness': 2
+                    }
+                ]
+                
+                self.save_debug_screenshot(
+                    step_name='click_region',
+                    region=region,
+                    annotations=annotations,
+                    extra_info={
+                        'click_point': [center_x, center_y]
+                    }
+                )
+            
+            # 使用基类的点击方法
+            return self._click_region(region)
+            
+        except Exception as e:
+            self.logger.error(f"点击区域失败: {str(e)}")
+            return False

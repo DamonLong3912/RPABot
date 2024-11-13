@@ -14,14 +14,19 @@ class AppendToListAction(BaseAction):
         try:
             # 获取当前列表
             current_list = self.bot.get_variable(list_name)
+            
             if not isinstance(current_list, list):
                 current_list = []
             
             # 解析数据中的变量引用
             resolved_data = {}
             for key, value in data.items():
-                if isinstance(value, str) and "${" in value:
-                    resolved_data[key] = self.bot._resolve_variable(value)
+                if isinstance(value, str):
+                    # 直接从bot中获取变量值，而不是解析变量引用字符串
+                    var_name = value.replace("${", "").replace("}", "")
+                    resolved_value = self.bot.get_variable(var_name)
+                    self.logger.debug(f"解析变量 {var_name}: {resolved_value}")
+                    resolved_data[key] = resolved_value
                 else:
                     resolved_data[key] = value
             
@@ -42,7 +47,13 @@ class ExportDataAction(BaseAction):
     """导出数据到文件"""
     
     def execute(self, params: Dict[str, Any]) -> bool:
-        data = self.bot.get_variable(params['data'])
+        # 获取变量名并解析变量引用
+        data_var = params['data']
+        if isinstance(data_var, str) and "${" in data_var:
+            data = self.bot._resolve_variable(data_var)
+        else:
+            data = self.bot.get_variable(data_var)
+            
         format_type = params.get('format', 'json')
         filename = params['filename']
         
@@ -50,6 +61,9 @@ class ExportDataAction(BaseAction):
             # 确保输出目录存在
             output_path = Path(filename)
             output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # 记录导出的数据内容
+            self.logger.debug(f"准备导出数据: {data}")
             
             # 根据格式类型导出数据
             if format_type == 'json':

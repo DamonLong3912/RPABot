@@ -44,7 +44,7 @@ steps:
   - name: "开始循环爬取"
     action: "loop"
     params:
-      max_iterations: 50  # 增加最大循环次数
+      max_iterations: 3
       break_conditions:
         - type: "step_result"
           step: "检查是否到底"
@@ -53,14 +53,48 @@ steps:
         - name: "点击一个加油站"
           action: "wait_and_click_region"
           params:
-            region: [0, 1700, 1080, 2000]  # 底部tabbar上方区域
+            region: [0, 1700, 1080, 2000]
             timeout: 10
             check_interval: 1
 
         - name: "等待加载"
           action: "sleep"
           params:
-            seconds: 2
+            seconds: 1
+
+        - name: "验证标题栏"
+          action: "verify_text_in_region"
+          params:
+            region: [400, 120, 680, 200]  # 标题栏区域
+            expected_text: "滴滴加油"
+            save_to: "title_verified"
+
+        - name: "动态调整滑动距离"
+          action: "loop"
+          params:
+            max_iterations: 5  # 最多尝试5次
+            break_conditions:
+              - type: "variable"
+                name: "title_verified"
+                value: true
+            steps:
+              - name: "小幅滑动"
+                action: "scroll"
+                params:
+                  direction: "up"
+                  distance: 20  # 每次小幅滑动20像素
+
+              - name: "等待刷新"
+                action: "sleep"
+                params:
+                  seconds: 0.5
+
+              - name: "验证标题栏"
+                action: "verify_text_in_region"
+                params:
+                  region: [400, 120, 680, 200]
+                  expected_text: "滴滴加油"
+                  save_to: "title_verified"
 
         - name: "获取加油站名称"
           action: "get_text_from_region"
@@ -121,6 +155,6 @@ steps:
   - name: "导出数据"
     action: "export_data"
     params:
-      data: "${variables.station_data}"
+      data: "station_data"
       format: "json"
       filename: "gas_stations.json"

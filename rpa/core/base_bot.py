@@ -252,73 +252,21 @@ class BaseBot:
 
     def _execute_action(self, action_type: str, params: Dict[str, Any]) -> Any:
         """执行指定类型的动作"""
-        # 应用管理相关动作
-        if action_type == "check_and_install_app":
-            return self.app_helper.check_and_install_app(**params)
-        elif action_type == "wait_for_app_installed":
-            return self.app_helper.verify_app_installed(**params)
-        elif action_type == "start_app":
-            return self.app_helper.start_app(**params)
+        try:
+            from .actions import get_action_class
+            action_class = get_action_class(action_type)
             
-        # OCR交互相关动作
-        elif action_type in ["wait_and_click_ocr_text", "handle_popups_until_target", 
-                            "wait_for_input_ready", "input_text"]:
-            if not hasattr(self, 'ocr_interactive_actions'):
-                from .actions.ocr_actions import OCRActions
-                self.ocr_interactive_actions = OCRActions(self)
+            # 缓存实例
+            action_cache_name = f'_{action_type}_action'
+            if not hasattr(self, action_cache_name):
+                setattr(self, action_cache_name, action_class(self))
                 
-            if action_type == "wait_and_click_ocr_text":
-                return self.ocr_interactive_actions.wait_and_click_ocr_text(params)
-            elif action_type == "handle_popups_until_target":
-                return self.ocr_interactive_actions.handle_popups_until_target(params)
-            elif action_type == "wait_for_input_ready":
-                return self.ocr_interactive_actions.wait_for_input_ready(params)
-            elif action_type == "input_text":
-                return self.ocr_interactive_actions.input_text(params)
-        # UI相关动作
-        elif action_type == "wait_and_click_region":
-            if not hasattr(self, 'wait_click_action'):
-                from .actions.ui_actions import WaitAndClickRegionAction
-                self.wait_click_action = WaitAndClickRegionAction(self)
-            return self.wait_click_action.execute(params)
-        elif action_type == "scroll":
-            if not hasattr(self, 'scroll_action'):
-                from .actions.ui_actions import ScrollAction
-                self.scroll_action = ScrollAction(self)
-            return self.scroll_action.execute(params)
-        
-        # OCR识别相关动作
-        elif action_type == "get_text_from_region":
-            if not hasattr(self, 'get_text_action'):
-                from .actions.ocr_actions import GetTextFromRegionAction
-                self.get_text_action = GetTextFromRegionAction(self)
-            return self.get_text_action.execute(params)
-        elif action_type == "check_text_exists":
-            if not hasattr(self, 'check_text_action'):
-                from .actions.ocr_actions import CheckTextExistsAction
-                self.check_text_action = CheckTextExistsAction(self)
-            return self.check_text_action.execute(params)
-        
-        # 数据操作动作
-        elif action_type == "append_to_list":
-            if not hasattr(self, 'data_actions'):
-                from .actions.data_actions import AppendToListAction
-                self.data_actions = AppendToListAction(self)
-            return self.data_actions.execute(params)
-        # 通用工具动作
-        elif action_type == "sleep":
-            if not hasattr(self, 'utility_actions'):
-                from .actions.utility_actions import SleepAction
-                self.utility_actions = SleepAction(self)
-            return self.utility_actions.execute(params)
-        # 流程控制动作
-        elif action_type == "loop":
-            if not hasattr(self, 'flow_actions'):
-                from .actions.flow_actions import LoopAction
-                self.flow_actions = LoopAction(self)
-            return self.flow_actions.execute(params)
-        else:
-            raise ValueError(f"未知的动作类型: {action_type}")
+            action = getattr(self, action_cache_name)
+            return action.execute(params)
+            
+        except Exception as e:
+            self.logger.error(f"执行动作 {action_type} 失败: {str(e)}")
+            raise
 
     def get_variable(self, name: str, default: Any = None) -> Any:
         """获取变量值"""

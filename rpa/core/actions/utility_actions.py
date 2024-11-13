@@ -14,3 +14,8 @@ class SleepAction(BaseAction):
         except Exception as e:
             self.logger.error(f"等待操作失败: {str(e)}")
             return False 
+
+class HandlePopupsUntilTargetAction(BaseAction):
+    """处理弹窗直到目标出现"""
+    def execute(self, params: Dict[str, Any]) -> bool:
+        return self.bot.ocr_interactive_actions.handle_popups_until_target(params) 

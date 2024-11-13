@@ -56,3 +56,6 @@ temp/
 
 # debug
 debug/
+
+# output
+*.json
