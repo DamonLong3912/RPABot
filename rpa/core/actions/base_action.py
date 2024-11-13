@@ -126,14 +126,7 @@ class BaseAction:
     def save_debug_screenshot(self, step_name: str, region: List[int] = None,
                             annotations: List[Dict] = None,
                             extra_info: Dict[str, Any] = None) -> None:
-        """保存调试截图和信息
-        
-        Args:
-            step_name: 步骤名称
-            region: 截图区域[x1,y1,x2,y2]
-            annotations: 图像标注列表
-            extra_info: 额外调试信息
-        """
+        """保存调试截图和信息"""
         if not self.bot.debug:
             return
             
@@ -143,11 +136,15 @@ class BaseAction:
             if not debug_dir:
                 return
                 
+            # 添加时间戳到文件名
+            timestamp = time.strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            filename_prefix = f"{step_name}_{timestamp}"
+                
             # 获取截图
             screenshot = self.screenshot_helper.take_screenshot(
                 save_path=str(debug_dir),
                 region=region,
-                filename_prefix=step_name
+                filename_prefix=filename_prefix
             )
             
             # 如果有标注，创建标注后的图片
@@ -175,20 +172,21 @@ class BaseAction:
                         cv2.rectangle(img, (data[0], data[1]), (data[2], data[3]),
                                     color, thickness)
                 
-                # 保存标注后的图片
-                cv2.imwrite(str(debug_dir / f"{step_name}_annotated.png"), img)
+                # 保存标注后的图片（使用带时间戳的文件名）
+                cv2.imwrite(str(debug_dir / f"{filename_prefix}_annotated.png"), img)
             
-            # 保存调试信息
+            # 保存调试信息（使用带时间戳的文件名）
             if extra_info or region or annotations:
                 debug_info = {
                     'step_name': step_name,
+                    'timestamp': timestamp,
                     'region': region,
                     'annotations': annotations
                 }
                 if extra_info:
                     debug_info.update(extra_info)
                 
-                with open(debug_dir / f"{step_name}_debug_info.yaml", 'w',
+                with open(debug_dir / f"{filename_prefix}_debug_info.yaml", 'w',
                          encoding='utf-8') as f:
                     yaml.dump(debug_info, f, allow_unicode=True)
                     
