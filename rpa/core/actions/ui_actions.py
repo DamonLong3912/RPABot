@@ -12,9 +12,7 @@ class WaitAndClickRegionAction(BaseAction):
     
     def execute(self, params: Dict[str, Any]) -> bool:
         region = params['region']
-        timeout = params.get('timeout', 10)
-        check_interval = params.get('check_interval', 1)
-        step_name = params.get('name', 'click_region')
+        step_name = params.get('name', 'wait_and_click_region')
         
         # 验证区域参数
         if len(region) != 4:
@@ -45,7 +43,6 @@ class WaitAndClickRegionAction(BaseAction):
                 
                 self.save_debug_screenshot(
                     step_name=step_name,
-                    region=region,
                     annotations=annotations,
                     extra_info={
                         'click_point': [center_x, center_y]
@@ -114,18 +111,6 @@ class ScrollAction(BaseAction):
             self.logger.error(f"滑动失败: {str(e)}")
             return False
 
-class StartAppAction(BaseAction):
-    """启动应用"""
-    def execute(self, params: Dict[str, Any]) -> bool:
-        package = params['package']
-        return self.bot.app_helper.start_app(package)
-
-class StopAppAction(BaseAction):
-    """停止应用"""
-    def execute(self, params: Dict[str, Any]) -> bool:
-        package = params['package']
-        return self.bot.app_helper.stop_app(package)
-
 class SwipeAction(BaseAction):
     """滑动操作"""
     def execute(self, params: Dict[str, Any]) -> bool:
@@ -183,7 +168,6 @@ class ClickRegionAction(BaseAction):
                 
                 self.save_debug_screenshot(
                     step_name='click_region',
-                    region=region,
                     annotations=annotations,
                     extra_info={
                         'click_point': [center_x, center_y]

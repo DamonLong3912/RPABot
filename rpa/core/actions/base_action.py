@@ -24,8 +24,6 @@ class BaseAction:
             self.ocr_helper = bot.ocr_helper
         if hasattr(bot, 'screenshot_helper'):
             self.screenshot_helper = bot.screenshot_helper
-        if hasattr(bot, 'app_helper'):
-            self.app_helper = bot.app_helper
         if hasattr(bot, 'device_id'):
             self.device_id = bot.device_id
     
@@ -137,7 +135,7 @@ class BaseAction:
                 return
                 
             # 添加时间戳到文件名
-            timestamp = time.strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            timestamp = time.strftime("%Y%m%d_%H%M%S") + f"_{time.time_ns() // 1000000:03d}"
             filename_prefix = f"{step_name}_{timestamp}"
                 
             # 获取截图
@@ -151,9 +149,15 @@ class BaseAction:
             if annotations:
                 img = cv2.imread(screenshot)
                 
+                # 获取截图缩放比例
+                scale_x = self.screenshot_helper.scale
+                scale_y = self.screenshot_helper.scale
+                
                 # 绘制区域框
                 if region:
-                    x1, y1, x2, y2 = map(int, region)
+                    x1, y1, x2, y2 = [int(coord * scale_x) if i % 2 == 0 
+                                     else int(coord * scale_y) 
+                                     for i, coord in enumerate(region)]
                     cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 
                 # 绘制其他标注
@@ -164,13 +168,22 @@ class BaseAction:
                     thickness = annotation.get('thickness', 2)
                     
                     if ann_type == 'circle':
-                        cv2.circle(img, (data[0], data[1]), data[2], color, thickness)
+                        center_x = int(data[0] * scale_x)
+                        center_y = int(data[1] * scale_y)
+                        radius = int(data[2] * scale_x)  # 使用x方向的缩放比例
+                        cv2.circle(img, (center_x, center_y), radius, color, thickness)
                     elif ann_type == 'text':
-                        cv2.putText(img, data[0], (data[1], data[2]),
-                                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, thickness)
+                        text = data[0]
+                        x = int(data[1] * scale_x)
+                        y = int(data[2] * scale_y)
+                        cv2.putText(img, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 
+                                  0.5 * scale_x, color, thickness)
                     elif ann_type == 'rectangle':
-                        cv2.rectangle(img, (data[0], data[1]), (data[2], data[3]),
-                                    color, thickness)
+                        x1 = int(data[0] * scale_x)
+                        y1 = int(data[1] * scale_y)
+                        x2 = int(data[2] * scale_x)
+                        y2 = int(data[3] * scale_y)
+                        cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness)
                 
                 # 保存标注后的图片（使用带时间戳的文件名）
                 cv2.imwrite(str(debug_dir / f"{filename_prefix}_annotated.png"), img)

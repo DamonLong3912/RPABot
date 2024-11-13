@@ -3,18 +3,16 @@ from .ui_actions import (
     ClickRegionAction,
     WaitAndClickRegionAction,
     ScrollAction,
-    StartAppAction,
-    StopAppAction,
     SwipeAction
 )
 from .ocr_actions import (
     GetTextFromRegionAction,
-    CheckTextExistsAction,
     VerifyTextInRegionAction,
     WaitAndClickOCRTextAction,
     HandlePopupsUntilTargetAction,
     WaitForInputReadyAction,
-    InputTextAction
+    InputTextAction,
+    GetElementPositionAction
 )
 from .data_actions import (
     AppendToListAction,
@@ -26,17 +24,20 @@ from .flow_actions import (
     LoopAction,
     SleepAction
 )
+from .app_actions import (
+    CheckAndInstallAppAction,
+    VerifyAppInstalledAction,
+    StartAppAction,
+    WaitForAppInstalledAction
+)
 
 # 动作类型映射表
 ACTION_MAP = {
     'click_region': ClickRegionAction,
     'wait_and_click_region': WaitAndClickRegionAction,
     'scroll': ScrollAction,
-    'start_app': StartAppAction,
-    'stop_app': StopAppAction,
     'swipe': SwipeAction,
     'get_text_from_region': GetTextFromRegionAction,
-    'check_text_exists': CheckTextExistsAction,
     'verify_text_in_region': VerifyTextInRegionAction,
     'wait_and_click_ocr_text': WaitAndClickOCRTextAction,
     'handle_popups_until_target': HandlePopupsUntilTargetAction,
@@ -47,7 +48,12 @@ ACTION_MAP = {
     'set_variable': SetVariableAction,
     'get_variable': GetVariableAction,
     'loop': LoopAction,
-    'sleep': SleepAction
+    'sleep': SleepAction,
+    'get_element_position': GetElementPositionAction,
+    'check_and_install_app': CheckAndInstallAppAction,
+    'verify_app_installed': VerifyAppInstalledAction,
+    'start_app': StartAppAction,
+    'wait_for_app_installed': WaitForAppInstalledAction
 }
 
 def get_action_class(action_type: str) -> type:

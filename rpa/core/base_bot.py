@@ -3,7 +3,6 @@ import logging
 import subprocess
 from typing import Dict, Any, List
 from pathlib import Path
-from ..utils.app_helper import AppHelper  # 修改导入路径
 import time
 import yaml
 from ..utils.logger import get_logger  # 修改导入路径
@@ -35,7 +34,6 @@ class BaseBot:
         self._init_device()
         
         # 初始化工具类
-        self.app_helper = AppHelper(self.device_id)
         self.screenshot_helper = ScreenshotHelper(self.device_id)
         self.ocr_helper = OCRHelper()
         

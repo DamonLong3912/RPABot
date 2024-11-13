@@ -3,7 +3,7 @@ description: "自动爬取滴滴加油APP中的加油站信息"
 version: "1.0"
 
 variables:
-  scroll_distance: 300  # 向上滑动的距离（像素）
+  scroll_distance: 280  # 向上滑动的距离（像素）
   station_data: []     # 存储爬取的加油站数据
 
 prerequisites:
@@ -41,10 +41,16 @@ steps:
           click_region: [980, 120, 1060, 200]  # 右上角关闭按钮区域
           priority: 2
 
+  - name: "列表滚动到顶部"
+    action: "scroll"
+    params:
+      direction: "up"
+      distance: 600
+
   - name: "开始循环爬取"
     action: "loop"
     params:
-      max_iterations: 3
+      max_iterations: 100
       break_conditions:
         - type: "step_result"
           step: "检查是否到底"
@@ -53,9 +59,7 @@ steps:
         - name: "点击一个加油站"
           action: "wait_and_click_region"
           params:
-            region: [0, 1700, 1080, 2000]
-            timeout: 10
-            check_interval: 1
+            region: [0, 400, 1080, 700]
 
         - name: "等待加载"
           action: "sleep"
@@ -72,7 +76,7 @@ steps:
         - name: "动态调整滑动距离"
           action: "loop"
           params:
-            max_iterations: 5  # 最多尝试5次
+            max_iterations: 10  # 最多尝试10次
             break_conditions:
               - type: "variable"
                 name: "title_verified"
@@ -82,12 +86,17 @@ steps:
                 action: "scroll"
                 params:
                   direction: "up"
-                  distance: 20  # 每次小幅滑动20像素
+                  distance: 50  # 每次小幅滑动50像素
 
+              - name: "再次点击加油站"
+                action: "wait_and_click_region"
+                params:
+                  region: [0, 400, 1080, 700]
+                  
               - name: "等待刷新"
                 action: "sleep"
                 params:
-                  seconds: 0.5
+                  seconds: 2
 
               - name: "验证标题栏"
                 action: "verify_text_in_region"
@@ -96,23 +105,35 @@ steps:
                   expected_text: "滴滴加油"
                   save_to: "title_verified"
 
+        - name: "等待加载"
+          action: "sleep"
+          params:
+            seconds: 1
+
+        - name: "获取'详情'位置"
+          action: "get_element_position"
+          params:
+            text: "详情"
+            region: [0, 300, 1080, 1000]
+            save_to: "detail_position"
+
         - name: "获取加油站名称"
           action: "get_text_from_region"
           params:
-            region: [50, 350, 800, 480]
+            region: [50, "${detail_position.y1 - 250}", 800, "${detail_position.y1 - 160}"]
             save_to: "current_station_name"
-
-        - name: "获取油价信息"
-          action: "get_text_from_region"
-          params:
-            region: [50, 550, 1050, 620]
-            save_to: "price_info"
 
         - name: "获取地址信息"
           action: "get_text_from_region"
           params:
-            region: [50, 480, 1050, 550]
+            region: [50, "${detail_position.y1 - 150}", 1050, "${detail_position.y1 - 90}"]
             save_to: "address_info"
+
+        - name: "获取油价信息"
+          action: "get_text_from_region"
+          params:
+            region: [50, "${detail_position.y1 - 80}", 1050, "${detail_position.y1 - 30}"]
+            save_to: "price_info"
 
         - name: "保存数据"
           action: "append_to_list"
@@ -127,7 +148,6 @@ steps:
           action: "wait_and_click_region"
           params:
             region: [20, 120, 100, 200]  # 左上角返回按钮区域
-            timeout: 5
 
         - name: "等待首页刷新"
           action: "sleep"
@@ -146,10 +166,10 @@ steps:
             seconds: 3
 
         - name: "检查是否到底"
-          action: "check_text_exists"
+          action: "verify_text_in_region"
           params:
             region: [0, 1800, 1080, 2200]
-            text: "到底了"
+            expected_text: "到底了"
             save_to: "reached_bottom"
 
   - name: "导出数据"

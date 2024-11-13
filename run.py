@@ -40,8 +40,31 @@ def setup_dev_env():
     logger.info(f"日志目录: {os.environ['RPA_LOG_DIR']}")
     logger.info(f"日志级别: {os.environ['RPA_LOG_LEVEL']}")
 
+def clean_temp_directories():
+    """清理临时目录"""
+    dirs_to_clean = ['logs', 'debug', 'temp']
+    project_root = Path(__file__).parent.absolute()
+    
+    logger = get_logger(__name__)
+    for dir_name in dirs_to_clean:
+        dir_path = project_root / dir_name
+        if dir_path.exists():
+            try:
+                for item in dir_path.iterdir():
+                    if item.is_file():
+                        item.unlink()
+                    elif item.is_dir():
+                        import shutil
+                        shutil.rmtree(item)
+                logger.info(f"已清理目录: {dir_name}")
+            except Exception as e:
+                logger.warning(f"清理目录 {dir_name} 时出错: {str(e)}")
+
 def main():
     args = parse_args()
+    
+    # 清理临时目录
+    clean_temp_directories()
     
     # 确保日志文件名有效
     if not args.log:
