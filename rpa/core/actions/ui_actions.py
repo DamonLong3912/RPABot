@@ -14,32 +14,26 @@ class WaitAndClickRegionAction(BaseAction):
         region = params['region']
         timeout = params.get('timeout', 10)
         check_interval = params.get('check_interval', 1)
-        step_name = params.get('name', 'click_region')  # 获取步骤名称
+        step_name = params.get('name', 'click_region')
         
         # 验证区域参数
         if len(region) != 4:
             raise ValueError("region参数必须包含4个值: [x1, y1, x2, y2]")
-            
-        x1, y1, x2, y2 = region
-        center_x = (x1 + x2) // 2
-        center_y = (y1 + y2) // 2
-        
-        # 确保点击坐标为整数
-        center_x = int(center_x)
-        center_y = int(center_y)
         
         try:
             # 如果是调试模式，保存调试信息
             if self.bot.debug:
+                x1, y1, x2, y2 = map(int, region)
+                center_x = (x1 + x2) // 2
+                center_y = (y1 + y2) // 2
+                
                 annotations = [
-                    # 添加点击点标注
                     {
                         'type': 'circle',
                         'data': [center_x, center_y, 10],
-                        'color': (0, 0, 255),  # 红色
+                        'color': (0, 0, 255),
                         'thickness': -1
                     },
-                    # 添加坐标文本
                     {
                         'type': 'text',
                         'data': [f"Click: ({center_x}, {center_y})",
@@ -58,16 +52,10 @@ class WaitAndClickRegionAction(BaseAction):
                     }
                 )
             
-            # 执行点击
-            subprocess.run([
-                'adb', '-s', self.bot.device_id, 'shell', 
-                f'input tap {center_x} {center_y}'
-            ], check=True)
+            # 使用基类的点击方法
+            return self._click_region(region)
             
-            self.logger.info(f"点击区域: ({center_x}, {center_y})")
-            return True
-            
-        except subprocess.CalledProcessError as e:
+        except Exception as e:
             self.logger.error(f"点击区域失败: {str(e)}")
             return False
 

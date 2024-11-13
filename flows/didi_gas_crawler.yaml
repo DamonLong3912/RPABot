@@ -21,6 +21,26 @@ steps:
     params:
       seconds: 3
 
+  - name: "处理新人弹窗"
+    action: "handle_popups_until_target"
+    params:
+      timeout: 30
+      check_interval: 1
+      screenshot_region: [0, 0, 1080, 2400]
+      target_text: "输入目的地，查找附近加油站"
+      target_clickable: false
+      popups:
+        - name: "新人神券弹窗"
+          patterns: ["新人天天神券掉落"]
+          action: "click_region"
+          click_region: [980, 120, 1060, 200]  # 右上角关闭按钮区域
+          priority: 1
+        - name: "透明遮罩层"
+          patterns: ["快来抢劵"]
+          action: "click_region"
+          click_region: [980, 120, 1060, 200]  # 右上角关闭按钮区域
+          priority: 2
+
   - name: "开始循环爬取"
     action: "loop"
     params:

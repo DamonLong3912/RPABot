@@ -84,16 +84,7 @@ class OCRActions(BaseAction):
 
     def _click_ocr_result(self, result: Dict[str, Any], screenshot_region: List[int] = None, 
                          click_offset: List[int] = None) -> bool:
-        """点击OCR识别结果的中心位置
-        
-        Args:
-            result: OCR识别结果
-            screenshot_region: 截图区域[x1,y1,x2,y2]
-            click_offset: 点击位置的偏移量[offset_x, offset_y]
-        
-        Returns:
-            bool: 点击是否成功
-        """
+        """点击OCR识别结果的中心位置"""
         # 计算相对于裁剪区域的中心点（在缩放图片上的坐标）
         box = result['box']
         center_x = (box[0][0] + box[2][0]) // 2
@@ -107,31 +98,14 @@ class OCRActions(BaseAction):
         # 转换为实际坐标（考虑缩放因子）
         real_x, real_y = self.screenshot_helper.get_real_coordinates(center_x, center_y)
         
-        # 如果有截图区域，加上区域偏移
-        if screenshot_region:
-            real_x += screenshot_region[0]
-            real_y += screenshot_region[1]
-        
         self.logger.debug(f"坐标计算过程:")
         self.logger.debug(f"OCR原始坐标: ({center_x}, {center_y})")
         if click_offset:
             self.logger.debug(f"点击偏移量: ({click_offset[0]}, {click_offset[1]})")
         self.logger.debug(f"缩放因子: {self.screenshot_helper.get_scale_factor()}")
-        if screenshot_region:
-            self.logger.debug(f"截图区域偏移: ({screenshot_region[0]}, {screenshot_region[1]})")
-        self.logger.debug(f"最终点击坐标: ({real_x}, {real_y})")
-        # 执行点击
-        try:
-            subprocess.run(
-                ['adb', '-s', self.bot.device_id, 'shell', 'input', 'tap',
-                 str(int(real_x)), str(int(real_y))],
-                check=True
-            )
-            self.logger.info(f"点击坐标: ({real_x}, {real_y})")
-            return True
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"点击操作失败: {e}")
-            return False
+        
+        # 使用基类的点击方法
+        return self._click_at_point(real_x, real_y, screenshot_region)
 
     def wait_and_click_ocr_text(self, params: Dict[str, Any]) -> bool:
         """等待指定文字出现并点击"""
@@ -202,11 +176,17 @@ class OCRActions(BaseAction):
                 check_interval: 检查间隔(秒)
                 target_text: 目标文本
                 screenshot_region: 截图区域[x1,y1,x2,y2]，默认全屏
-                popups: 弹窗配置列表
+                popups: 弹窗配置列表，每个弹窗支持：
+                    - name: 弹窗名称
+                    - patterns: 匹配文本列表
+                    - action: 动作类型(click_first/click_region)
+                    - click_region: 当action为click_region时的点击区域[x1,y1,x2,y2]
+                    - priority: 优先级(数字越小优先级越高)
         """
         timeout = params.get('timeout', 60)
         check_interval = params.get('check_interval', 1)
         target_text = params.get('target_text')
+        target_clickable = params.get('target_clickable', True)
         screenshot_region = params.get('screenshot_region')
         popups = params.get('popups', [])
         
@@ -252,7 +232,11 @@ class OCRActions(BaseAction):
             
             if target_results:
                 self.logger.info(f"检测到目标文本: {target_text}")
-                return True
+                # 检查是否需要验证可点击性
+                if not target_clickable or self._is_element_clickable(target_results[0], screenshot):
+                    return True
+                else:
+                    self.logger.debug(f"目标文本当前不可点击，继续处理弹窗")
             
             # 检查并处理弹窗
             popup_handled = False
@@ -279,9 +263,8 @@ class OCRActions(BaseAction):
                 if matched_results:
                     self.logger.info(f"检测到弹窗: {popup['name']}")
                     
-                    # 根据action类型选择要点击的目标
                     if action == 'click_first':
-                        # 按照patterns的顺序找到第一个匹配的结果
+                        # 原有的点击文本逻辑
                         target_result = None
                         for pattern in patterns:
                             for result in matched_results:
@@ -293,15 +276,66 @@ class OCRActions(BaseAction):
                         
                         if target_result:
                             self.logger.debug(f"将点击文本: {target_result['text']}")
-                            # 使用公共点击方法
                             if self._click_ocr_result(target_result, screenshot_region):
-                                self.logger.info(f"点击弹窗 {popup['name']} 的 {target_result['text']}")
                                 popup_handled = True
-                                time.sleep(1)  # 等待动画完成
-                            else:
-                                self.logger.warning(f"点击弹窗 {popup['name']} 失败")
-                    else:
-                        self.logger.warning(f"未支持的action类型: {action}")
+                    
+                    elif action == 'click_region':
+                        # 点击指定区域
+                        click_region = popup.get('click_region')
+                        if click_region:
+                            # 保存调试信息
+                            if self.bot.debug:
+                                x1, y1, x2, y2 = map(int, click_region)
+                                center_x = (x1 + x2) // 2
+                                center_y = (y1 + y2) // 2
+                                
+                                annotations = [
+                                    # 添加点击区域框
+                                    {
+                                        'type': 'rectangle',
+                                        'data': [x1, y1, x2, y2],
+                                        'color': (0, 255, 0),  # 绿色
+                                        'thickness': 2
+                                    },
+                                    # 添加点击点
+                                    {
+                                        'type': 'circle',
+                                        'data': [center_x, center_y, 10],
+                                        'color': (0, 0, 255),  # 红色
+                                        'thickness': -1  # 实心圆
+                                    },
+                                    # 添加坐标文本
+                                    {
+                                        'type': 'text',
+                                        'data': [
+                                            f"Click: ({center_x}, {center_y})",
+                                            center_x + 10,
+                                            center_y - 10
+                                        ],
+                                        'color': (0, 0, 255),
+                                        'thickness': 2
+                                    }
+                                ]
+                                
+                                self.save_debug_screenshot(
+                                    step_name=f"popup_{popup['name']}_click",
+                                    region=screenshot_region,
+                                    annotations=annotations,
+                                    extra_info={
+                                        'popup_name': popup['name'],
+                                        'click_region': click_region,
+                                        'click_point': [center_x, center_y],
+                                        'matched_text': [r['text'] for r in matched_results]
+                                    }
+                                )
+                            
+                            popup_handled = self._click_region(click_region)
+                            if popup_handled:
+                                self.logger.info(f"点击区域成功: {click_region}")
+                    
+                    if popup_handled:
+                        self.logger.info(f"成功处理弹窗: {popup['name']}")
+                        break
             
             if not popup_handled:
                 self.logger.debug(f"当前未检测到任何弹窗，继续等待目标文本: {target_text}")

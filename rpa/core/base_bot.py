@@ -188,12 +188,12 @@ class BaseBot:
         step_name = step.get('name', '未命名步骤')
         
         if self.debug:
-            # 保存步骤配置
-            step_debug_dir = self.debug_dir / f"{step_name}"
+            # 创建步骤调试目录，使用序号前缀
+            step_debug_dir = self.debug_dir / f"{self.current_step_index:03d}_{step_name}"
             step_debug_dir.mkdir(exist_ok=True)
             
-            with open(step_debug_dir / "step_config.yaml", "w", encoding="utf-8") as f:
-                yaml.dump(step, f, allow_unicode=True)
+            # 不再保存 step_config，只用于存放截图和其他调试信息
+            self.current_debug_dir = step_debug_dir
         
         # 检查条件
         conditions = step.get('conditions', [])
@@ -209,9 +209,14 @@ class BaseBot:
         for key, value in params.items():
             resolved_params[key] = self._resolve_variable(value)
             
-        # 执行动作并保存结果
-        result = self._execute_action(step_type, resolved_params)
-        self._save_step_result(step_name, result)
+        try:
+            # 执行动作并保存结果
+            result = self._execute_action(step_type, resolved_params)
+            self._save_step_result(step_name, result)
+        finally:
+            if self.debug:
+                # 清理当前调试目录引用
+                self.current_debug_dir = None
 
     def _check_conditions(self, conditions: List[Dict[str, Any]]) -> bool:
         """检查步骤执行条件"""
