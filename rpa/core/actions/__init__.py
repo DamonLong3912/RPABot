@@ -22,7 +22,8 @@ from .data_actions import (
 )
 from .flow_actions import (
     LoopAction,
-    SleepAction
+    SleepAction,
+    ForEachAction
 )
 from .app_actions import (
     CheckAndInstallAppAction,
@@ -53,7 +54,8 @@ ACTION_MAP = {
     'check_and_install_app': CheckAndInstallAppAction,
     'verify_app_installed': VerifyAppInstalledAction,
     'start_app': StartAppAction,
-    'wait_for_app_installed': WaitForAppInstalledAction
+    'wait_for_app_installed': WaitForAppInstalledAction,
+    'for_each': ForEachAction
 }
 
 def get_action_class(action_type: str) -> type:

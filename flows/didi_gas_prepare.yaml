@@ -87,9 +87,6 @@ steps:
     action: "input_text"
     params:
       text: "11111111111"
-      input_type: "number"
-      clear_first: true
-      timeout: 5
 
   - name: "点击阅读并同意复选框"
     action: "wait_and_click_ocr_text"

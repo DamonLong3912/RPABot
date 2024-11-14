@@ -21,7 +21,7 @@ steps:
     params:
       seconds: 3
 
-  - name: "处理新人弹窗"
+  - name: "处理弹窗"
     action: "handle_popups_until_target"
     params:
       timeout: 30

@@ -334,37 +334,28 @@ class InputTextAction(BaseAction):
     """输入文本"""
     
     def execute(self, params: Dict[str, Any]) -> bool:
-        text = params['text']
-        input_type = params.get('input_type', 'text')
-        clear_first = params.get('clear_first', True)
-        
         try:
-            if clear_first:
-                subprocess.run(
-                    ['adb', '-s', self.bot.device_id, 'shell', 'input', 'keyevent', 'KEYCODE_MOVE_END'],
-                    check=True
-                )
-                time.sleep(0.5)
-                subprocess.run(
-                    ['adb', '-s', self.bot.device_id, 'shell', 'input', 'keyevent', 'KEYCODE_DEL'],
-                    check=True
-                )
+            # 获取要输入的文本并解析变量
+            text = params['text']
+            if isinstance(text, str) and "${" in text:
+                # 提取变量名
+                var_name = text.replace("${", "").replace("}", "")
+                text = self.bot.get_variable(var_name)
+                if text is None:
+                    self.logger.error(f"变量 {var_name} 未找到")
+                    return False
+                
+            if not isinstance(text, str):
+                text = str(text)
             
-            if input_type == 'number':
-                for digit in text:
-                    keycode = f'KEYCODE_{digit}'
-                    subprocess.run(
-                        ['adb', '-s', self.bot.device_id, 'shell', 'input', 'keyevent', keycode],
-                        check=True
-                    )
-                    time.sleep(0.1)
-            else:
-                subprocess.run(
-                    ['adb', '-s', self.bot.device_id, 'shell', 'input', 'text', text],
-                    check=True
-                )
+            # 将空格替换为%s
+            text = text.replace(' ', '%s')
             
-            self.logger.info(f"成功输入文本: {text}")
+            # 执行输入命令
+            subprocess.run([
+                'adb', '-s', self.device_id, 'shell', 'input', 'text', text
+            ], check=True)
+            
             return True
             
         except Exception as e:
