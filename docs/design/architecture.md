@@ -7,31 +7,37 @@
 1. BaseBot
    - 流程解析和执行
    - 变量管理
-   - 条件判断
-   - 步骤依赖
+   - 动作调度
    - 调试支持
 
-2. 工具类
+2. 动作系统
+   - BaseAction: 动作基类
+   - UI动作: 界面操作
+   - OCR动作: 文字识别
+   - 数据动作: 数据处理
+   - 流程动作: 流程控制
+   - 应用动作: 应用管理
+
+3. 工具类
    - AppHelper: 应用管理
    - OCRHelper: 文字识别
    - ScreenshotHelper: 截图处理
    - Logger: 日志管理
 
-3. 动作实现
-   - OCRActions: OCR相关动作
-     - wait_and_click_ocr_text
-     - handle_popups_until_target
-   - 其他动作类型（待扩展）
-
 ### 目录结构
 ```
 rpa/
-├── core/           # 核心功能
+├── core/           
 │   ├── actions/    # 动作实现
-│   │   └── ocr_actions.py  # OCR相关动作
-│   ├── base_bot.py # 基础机器人
-│   └── decorators.py # 功能装饰器
-├── utils/          # 工具类
+│   │   ├── __init__.py    # 动作注册
+│   │   ├── base_action.py # 动作基类
+│   │   ├── ui_actions.py  # UI动作
+│   │   ├── ocr_actions.py # OCR动作
+│   │   ├── data_actions.py # 数据动作
+│   │   ├── flow_actions.py # 流程动作
+│   │   └── app_actions.py  # 应用动作
+│   └── base_bot.py # 基础机器人
+├── utils/          
 │   ├── app_helper.py  # 应用管理
 │   ├── ocr_helper.py  # OCR支持
 │   ├── screenshot.py  # 截图处理
