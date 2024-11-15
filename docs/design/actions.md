@@ -19,7 +19,6 @@
    - HandlePopupsUntilTargetAction: 处理弹窗直到目标出现
    - WaitForInputReadyAction: 等待输入框就绪
    - InputTextAction: 输入文字
-   - GetElementPositionAction: 获取元素位置
 
 3. 数据动作
    - AppendToListAction: 追加到列表

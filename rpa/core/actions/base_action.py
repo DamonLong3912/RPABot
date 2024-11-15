@@ -19,7 +19,9 @@ class BaseAction:
         self.bot = bot
         self.logger = get_logger(self.__class__.__name__)
         
-        # 常用工具类的引用
+        # 添加UIAnimator2引用
+        if hasattr(bot, 'ui_animator'):
+            self.ui_animator = bot.ui_animator
         if hasattr(bot, 'ocr_helper'):
             self.ocr_helper = bot.ocr_helper
         if hasattr(bot, 'screenshot_helper'):
@@ -62,42 +64,25 @@ class BaseAction:
         """
         self.bot.set_variable(name, value) 
     
-    def _click_at_point(self, x: Union[int, float], y: Union[int, float], 
-                       region: List[int] = None) -> bool:
-        """在指定坐标点执行点击
-        
-        Args:
-            x: 点击位置的x坐标
-            y: 点击位置的y坐标
-            region: 截图区域[x1,y1,x2,y2]，如果提供则坐标会加上区域偏移
-            
-        Returns:
-            bool: 点击是否成功
-        """
+    def _click_at_point(self, x: int, y: int, region: List[int] = None) -> bool:
+        """使用UIAnimator2在指定坐标点执行点击"""
         try:
-            # 确保坐标为整数
             click_x = int(x)
             click_y = int(y)
             
-            # 如果有区域偏移，加上偏移量
             if region:
                 click_x += int(region[0])
                 click_y += int(region[1])
             
-            # 执行点击
-            subprocess.run(
-                ['adb', '-s', self.bot.device_id, 'shell', 
-                 f'input tap {click_x} {click_y}'],
-                check=True
-            )
-            
+            # 使用UIAnimator2执行点击
+            self.ui_animator.click(click_x, click_y)
             self.logger.info(f"点击坐标: ({click_x}, {click_y})")
             return True
             
-        except subprocess.CalledProcessError as e:
+        except Exception as e:
             self.logger.error(f"点击失败: {str(e)}")
             return False
-            
+    
     def _click_region(self, region: List[int]) -> bool:
         """点击指定区域的中心位置
         

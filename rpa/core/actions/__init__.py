@@ -12,7 +12,7 @@ from .ocr_actions import (
     HandlePopupsUntilTargetAction,
     WaitForInputReadyAction,
     InputTextAction,
-    GetElementPositionAction
+    WaitForKeyElementAction
 )
 from .data_actions import (
     AppendToListAction,
@@ -51,13 +51,13 @@ ACTION_MAP = {
     'get_variable': GetVariableAction,
     'loop': LoopAction,
     'sleep': SleepAction,
-    'get_element_position': GetElementPositionAction,
     'check_and_install_app': CheckAndInstallAppAction,
     'verify_app_installed': VerifyAppInstalledAction,
     'start_app': StartAppAction,
     'wait_for_app_installed': WaitForAppInstalledAction,
     'for_each': ForEachAction,
-    'check_repeated_value': CheckRepeatedValueAction
+    'check_repeated_value': CheckRepeatedValueAction,
+    'wait_for_key_element': WaitForKeyElementAction
 }
 
 def get_action_class(action_type: str) -> type:

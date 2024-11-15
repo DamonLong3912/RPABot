@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import logging
 import yaml
 import os
 from pathlib import Path
 from rpa.core.base_bot import BaseBot
 from rpa.utils.logger import setup_logger, get_logger
+import subprocess
+import uiautomator2 as u2
+import time
 
 def parse_args():
     parser = argparse.ArgumentParser(description='RPA Framework 运行器')
@@ -16,7 +18,77 @@ def parse_args():
     parser.add_argument('--debug', '-d', action='store_true', help='启用调试模式')
     parser.add_argument('--dev', action='store_true', help='开发环境模式')
     parser.add_argument('--log', '-l', default='run.log', help='日志文件路径')
+    parser.add_argument('--init-device', action='store_true', help='初始化设备UIAutomator2环境')
     return parser.parse_args()
+
+def setup_uiautomator2(device_id: str = None) -> bool:
+    """安装和初始化UIAutomator2
+    
+    Args:
+        device_id: 设备ID，如果为None则初始化所有已连接设备
+        
+    Returns:
+        bool: 初始化是否成功
+    """
+    logger = get_logger(__name__)
+    try:
+        # 检查设备连接
+        if device_id:
+            devices = [device_id]
+        else:
+            # 获取所有已连接设备
+            result = subprocess.run(['adb', 'devices'], 
+                                 capture_output=True, 
+                                 text=True,
+                                 check=True)
+            devices = []
+            for line in result.stdout.split('\n')[1:]:
+                if line.strip() and '\tdevice' in line:
+                    devices.append(line.split('\t')[0])
+
+        if not devices:
+            logger.error("未找到已连接的设备")
+            return False
+
+        for device in devices:
+            logger.info(f"正在初始化设备 {device}")
+            
+            # 使用 u2.connect()
+            d = u2.connect(device)
+            try:
+                if not d.service("uiautomator").running():
+                    # 安装UIAutomator2
+                    logger.info("正在安装UIAutomator2服务...")
+                    d.service("uiautomator").start()
+                    # 等待服务启动
+                    time.sleep(2)
+                    
+                # 安装ATX应用
+                logger.info("正在安装ATX代理应用...")
+                d.app_install("https://github.com/openatx/android-uiautomator-server/releases/latest/download/app-uiautomator.apk")
+                
+                # 启动UIAutomator2服务
+                logger.info("正在启动UIAutomator2服务...")
+                d.service("uiautomator").start()
+                
+                # 等待服务就绪
+                for _ in range(10):
+                    if d.service("uiautomator").running():
+                        logger.info(f"设备 {device} UIAutomator2服务已就绪")
+                        break
+                    time.sleep(1)
+                else:
+                    raise RuntimeError("UIAutomator2服务启动超时")
+                
+            except Exception as e:
+                logger.error(f"初始化设备 {device} 失败: {str(e)}")
+                return False
+
+        return True
+        
+    except Exception as e:
+        logger.error(f"设置UIAutomator2失败: {str(e)}")
+        return False
 
 def setup_dev_env():
     """配置开发环境"""
@@ -82,6 +154,23 @@ def main():
         logger.info("运行在开发环境模式")
     
     try:
+        # 读取配置文件
+        with open(args.config, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        # 获取设备ID
+        device_id = config.get('device', {}).get('ip')
+        
+        # 如果指定了初始化设备
+        if args.init_device:
+            logger.info("开始初始化设备UIAutomator2环境...")
+            if not setup_uiautomator2(device_id):
+                logger.error("设备初始化失败")
+                return
+            logger.info("设备初始化完成")
+            if not args.flow:
+                return  # 如果只是初始化设备，到这里就可以结束了
+        
         # 读取流程配置文件
         flow_path = Path(args.flow)
         if not flow_path.is_absolute():

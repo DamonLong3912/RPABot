@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 import os
 from PIL import Image
 from loguru import logger
-import subprocess
+import uiautomator2 as u2
 import io
 
 class ScreenshotHelper:
@@ -17,6 +17,8 @@ class ScreenshotHelper:
         self.logger = logger
         self.scale = 0.5  # 内部缩放比例
         self.quality = 50  # JPEG质量
+        # 初始化UIAutomator2连接
+        self.ui_device = u2.connect(device_id)
 
     def take_screenshot(self, 
                        save_path: str,
@@ -42,42 +44,24 @@ class ScreenshotHelper:
             filename = f"{filename_prefix}.jpg"  # 使用jpg格式
             full_path = os.path.join(save_path, filename)
             
-            # 先保存到设备上的临时文件
-            temp_file = "/data/local/tmp/screenshot.png"
-            subprocess.run(
-                ['adb', '-s', self.device_id, 'shell', 'screencap', '-p', temp_file],
-                check=True
-            )
+            # 使用UIAutomator2截图
+            screenshot_data = self.ui_device.screenshot(format='pillow')
             
-            # 从设备拉取文件
-            subprocess.run(
-                ['adb', '-s', self.device_id, 'pull', temp_file, full_path],
-                check=True
-            )
+            # 如果指定了区域，先裁剪
+            if region:
+                x1, y1, x2, y2 = region
+                screenshot_data = screenshot_data.crop((x1, y1, x2, y2))
             
-            # 删除设备上的临时文件
-            subprocess.run(
-                ['adb', '-s', self.device_id, 'shell', 'rm', temp_file],
-                check=True
-            )
+            # 缩放图片
+            original_size = screenshot_data.size
+            new_size = tuple(int(dim * self.scale) for dim in original_size)
+            screenshot_data = screenshot_data.resize(new_size, Image.Resampling.LANCZOS)
             
-            # 使用 PIL 处理图片
-            with Image.open(full_path) as img:
-                # 如果指定了区域，先裁剪
-                if region:
-                    x1, y1, x2, y2 = region
-                    img = img.crop((x1, y1, x2, y2))
-                
-                # 缩放图片
-                original_size = img.size
-                new_size = tuple(int(dim * self.scale) for dim in img.size)
-                img = img.resize(new_size, Image.Resampling.LANCZOS)
-                
-                # 转换为灰度图
-                img = img.convert('L')
-                
-                # 保存为JPEG格式
-                img.save(full_path, 'JPEG', quality=self.quality, optimize=True)
+            # 转换为灰度图
+            screenshot_data = screenshot_data.convert('L')
+            
+            # 保存为JPEG格式
+            screenshot_data.save(full_path, 'JPEG', quality=self.quality, optimize=True)
             
             return full_path
             

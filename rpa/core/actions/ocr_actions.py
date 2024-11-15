@@ -22,7 +22,7 @@ class OCRBaseAction(BaseAction):
             box = result['box']
             scale = self.bot.screenshot_helper.get_scale_factor()
             
-            # 计算中心点坐标，考虑缩放因子
+            # 计算中心点坐标
             center_x = int((box[0][0] + box[2][0]) / (2 * scale))
             center_y = int((box[0][1] + box[2][1]) / (2 * scale))
             
@@ -36,13 +36,9 @@ class OCRBaseAction(BaseAction):
                 center_x += click_offset[0]
                 center_y += click_offset[1]
             
-            # 使用 adb 命令执行点击
-            subprocess.run(
-                ['adb', '-s', self.device_id, 'shell', 'input', 'tap', str(center_x), str(center_y)],
-                check=True,
-                capture_output=True
-            )
-            # 记录点击结果
+            # 使用UIAnimator2执行点击
+            self.ui_animator.click(center_x, center_y)
+            
             self.logger.debug(f"点击OCR结果: {result}")
             self.logger.info(f"点击坐标: ({center_x}, {center_y})")
             return True
@@ -168,137 +164,200 @@ class HandlePopupsUntilTargetAction(OCRBaseAction):
             return False
 
 class GetTextFromRegionAction(BaseAction):
-    """从指定区域获取文本"""
-    
-    def _parse_region(self, region: List) -> List[int]:
-        """解析区域参数，处理变量和计算"""
-        parsed_region = []
-        for value in region:
-            if isinstance(value, str) and '${' in value:
-                # 提取变量名和运算表达式
-                expr = value.replace('${', '').replace('}', '')
-                try:
-                    # 分离变量名和运算
-                    parts = expr.split(' ')
-                    var_name = parts[0]
-                    
-                    # 如果是嵌套字典访问（如 detail_position.y1）
-                    if '.' in var_name:
-                        obj_name, attr_name = var_name.split('.')
-                        var_value = self.bot.get_variable(obj_name)[attr_name]
-                    else:
-                        var_value = self.bot.get_variable(var_name)
-                    
-                    # 执行运算
-                    if len(parts) > 1:
-                        operation = ' '.join(parts[1:])
-                        result = eval(f"{var_value} {operation}")
-                        parsed_region.append(int(result))
-                    else:
-                        parsed_region.append(int(var_value))
-                except Exception as e:
-                    self.logger.error(f"解析区域参数失败: {str(e)}")
-                    raise
-            else:
-                parsed_region.append(int(value))
-        return parsed_region
+    """获取文本内容"""
     
     def execute(self, params: Dict[str, Any]) -> bool:
-        region = params.get('region')
         save_to = params['save_to']
-        step_name = params.get('name', 'get_text_from_region')
+        relative_to = params.get('relative_to')  # 相对于某个元素的位置
+        element_pattern = params.get('element_pattern')  # 元素文本模式
+        match_type = params.get('match_type')  # 匹配方式,不指定则尝试所有方式
+        timeout = params.get('timeout', 5)  # 默认10秒超时
+        interval = params.get('interval', 0.5)  # 默认0.5秒检查间隔
         
         try:
-            # 解析区域参数
-            if region:
-                region = self._parse_region(region)
+            self.logger.info(f"开始获取文本 (save_to: {save_to}, match_type: {match_type or 'all'})")
+            
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                # 定义匹配方式映射
+                selector_map = {
+                    'text': (lambda pattern: self.ui_animator(text=pattern), "text"),
+                    'text_contains': (lambda pattern: self.ui_animator(textContains=pattern), "textContains"),
+                    'description': (lambda pattern: self.ui_animator(description=pattern), "description"),
+                    'description_contains': (lambda pattern: self.ui_animator(descriptionContains=pattern), "descriptionContains")
+                }
+                
+                if element_pattern:
+                    # 如果指定了匹配方式
+                    if match_type:
+                        if match_type not in selector_map:
+                            raise ValueError(f"不支持的匹配方式: {match_type}")
+                        selectors = [(selector_map[match_type][0](element_pattern), match_type)]
+                    else:
+                        # 尝试所有匹配方式
+                        selectors = [(func(element_pattern), type_name) 
+                                   for func, type_name in selector_map.values()]
+                    
+                    for selector, selector_type in selectors:
+                        if selector.exists:
+                            element = selector.info
+                            # 根据匹配方式获取文本
+                            if 'description' in selector_type:
+                                text = element.get('contentDescription', '')
+                            else:
+                                text = element.get('text', '') or element.get('contentDescription', '')
+                            
+                            if text:  # 只在找到非空文本时返回
+                                self.logger.info(f"通过{selector_type}找到文本: {text}")
+                                self.bot.set_variable(save_to, text)
+                                return True
+
+                elif relative_to:
+                    # 获取参考元素的位置
+                    ref_element = self.bot.get_variable(relative_to)
+                    if not ref_element:
+                        self.logger.error(f"未找到参考元素变量: {relative_to}")
+                        time.sleep(interval)
+                        continue
+                    
+                    ref_bounds = ref_element['bounds']
+                    
+                    # 计算目标区域边界
+                    # 垂直方向优先使用绝对位置,没有则使用offset
+                    expected_top = params.get('top', ref_bounds['top'] + params.get('offset_top', 0))
+                    expected_bottom = params.get('bottom', ref_bounds['bottom'] + params.get('offset_bottom', 0))
+                    
+                    # 水平方向优先使用绝对位置,没有则使用offset
+                    expected_left = params.get('left', ref_bounds['left'] + params.get('offset_left', 0))
+                    expected_right = params.get('right', ref_bounds['right'] + params.get('offset_right', 0))
+                    self.logger.debug(f"参考元素边界: top={ref_bounds['top']}, bottom={ref_bounds['bottom']}, left={ref_bounds['left']}, right={ref_bounds['right']}")
+                    self.logger.debug(f"目标区域边界: top={expected_top}, bottom={expected_bottom}, left={expected_left}, right={expected_right}")
+                    
+                    # 获取所有可能的文本元素
+                    elements = []
+                    
+                    # 根据匹配方式获取元素
+                    if match_type:
+                        if 'description' in match_type:
+                            elements = self.ui_animator.xpath('//*//*[@content-desc]').all()
+                        else:
+                            elements = self.ui_animator.xpath('//*//*[@text]').all()
+                    else:
+                        # 获取所有可能的文本元素，包括嵌套元素
+                        elements = []
+                        elements.extend(self.ui_animator.xpath('//*//*[@text]').all())
+                        elements.extend(self.ui_animator.xpath('//*//*[@content-desc]').all())
+
+                    # 去重逻辑优化
+                    unique_elements = []
+                    seen_bounds = set()
+                    for element in elements:
+                        element_info = element.info
+                        bounds_str = str(element_info['bounds'])
+                        text = element_info.get('text', '') or element_info.get('contentDescription', '')
+                        # 使用边界和文本组合作为唯一标识
+                        unique_key = f"{bounds_str}_{text}"
+                        if unique_key not in seen_bounds:
+                            seen_bounds.add(unique_key)
+                            unique_elements.append(element)
+                    
+                    # 检查每个元素是否在目标区域内
+                    for element in unique_elements:
+                        element_info = element.info
+                        bounds = element_info['bounds']
                         
-            # 获取截图
-            screenshot = self.bot.screenshot_helper.take_screenshot(
-                save_path="temp",
-                filename_prefix="text_region",
-                region=region
-            )
-            
-            # OCR识别
-            results = self.bot.ocr_helper.extract_text(screenshot)
-            
-            # 合并所有文本
-            text = ' '.join([r['text'] for r in results])
-            
-            # 保存结果
-            self.bot.set_variable(save_to, text)
-            
-            # 如果是调试模式，保存调试信息
-            if self.bot.debug:
-                self.save_debug_screenshot(
-                    step_name=step_name,
-                    region=region,
-                    extra_info={
-                        'ocr_results': results,
-                        'extracted_text': text,
-                        'save_to_variable': save_to
-                    }
-                )
-            
-            self.logger.info(f"从区域 {region} 获取文本: {text}")
-            return True
+                        # 根据匹配方式获取文本
+                        if match_type and 'description' in match_type:
+                            text = element_info.get('contentDescription', '')
+                        else:
+                            text = element_info.get('text', '') or element_info.get('contentDescription', '')
+                        
+                        # 检查元素是否在目标区域内
+                        if (bounds['left'] >= expected_left and
+                            bounds['right'] <= expected_right and
+                            bounds['top'] >= expected_top and
+                            bounds['bottom'] <= expected_bottom):
+                            if text:  # 只处理有文本内容的元素
+                                self.logger.info(f"找到相对位置的文本: {text}")
+                                self.bot.set_variable(save_to, text)
+                                return True
+
+                self.logger.debug(f"未找到目标文本,已等待 {time.time() - start_time:.1f} 秒")
+                time.sleep(interval)
+
+            self.logger.warning(f"获取文本超时({timeout}秒)")
+            # 记录当前UI层级结构以便调试
+            try:
+                hierarchy = self.ui_animator.dump_hierarchy()
+                self.logger.debug(f"当前UI层级结构:\n{hierarchy}")
+            except Exception as e:
+                self.logger.error(f"获取UI层级结构失败: {str(e)}")
+            # 设置空字符串作为默认值
+            self.bot.set_variable(save_to, "")
+            return False
             
         except Exception as e:
-            self.logger.error(f"获取区域文本失败: {str(e)}")
+            self.logger.error(f"获取文本失败: {str(e)}")
+            # 发生异常时也设置空字符串
+            self.bot.set_variable(save_to, "")
             return False
 
 class VerifyTextInRegionAction(BaseAction):
-    """验证指定区域内是否包含预期文本"""
+    """验证区域内是否包含指定文字"""
     
     def execute(self, params: Dict[str, Any]) -> bool:
-        region = params['region']
+        region = params.get('region')
         expected_text = params['expected_text']
         save_to = params.get('save_to')
-        step_name = params.get('name', 'verify_text_in_region')
+        match_type = params.get('match_type', 'text')  # 匹配方式
         
         try:
-            # 获取截图
-            screenshot = self.bot.screenshot_helper.take_screenshot(
-                save_path="temp",
-                filename_prefix="verify_text",
-                region=region
-            )
+            # 定义匹配方式映射
+            selector_map = {
+                'text': (self.ui_animator(text=expected_text), "text"),
+                'text_contains': (self.ui_animator(textContains=expected_text), "textContains"),
+                'description': (self.ui_animator(description=expected_text), "description"),
+                'description_contains': (self.ui_animator(descriptionContains=expected_text), "descriptionContains")
+            }
             
-            # 执行OCR识别
-            results = self.bot.ocr_helper.extract_text(screenshot)
+            if match_type not in selector_map:
+                raise ValueError(f"不支持的匹配方式: {match_type}")
+                
+            selector, selector_type = selector_map[match_type]
             
-            # 合并所有文本
-            text = ' '.join([r['text'] for r in results])
+            if region:
+                x1, y1, x2, y2 = map(int, region)
+                
+                if selector.exists:
+                    element = selector.info
+                    bounds = element['bounds']
+                    if (bounds['left'] >= x1 and bounds['top'] >= y1 and 
+                        bounds['right'] <= x2 and bounds['bottom'] <= y2):
+                        self.logger.info(f"找到文本: {expected_text} (bounds: {bounds})")
+                        
+                        if save_to:
+                            self.bot.set_variable(save_to, True)
+                        return True
+            else:
+                # 不限制区域的查找
+                if selector.exists:
+                    self.logger.info(f"找到文本: {expected_text}")
+                    
+                    if save_to:
+                        self.bot.set_variable(save_to, True)
+                    return True
             
-            # 检查是否包含预期文本
-            result = expected_text in text
-            
+            # 如果没找到
+            self.logger.info(f"未找到文本: {expected_text}")
             if save_to:
-                self.bot.set_variable(save_to, result)
-                
-            self.logger.info(f"验证文本 '{expected_text}' 是否存在: {result}")
-
-            # 如果是调试模式，保存调试信息
-            if self.bot.debug:
-                
-                # 保存调试截图
-                self.save_debug_screenshot(
-                    step_name=step_name,
-                    region=region,
-                    extra_info={
-                        'ocr_results': results,
-                        'expected_text': expected_text,
-                        'extracted_text': text,
-                        'verification_result': result,
-                        'save_to_variable': save_to
-                    }
-                )
-            
-            return result
+                self.bot.set_variable(save_to, False)
+            return False
             
         except Exception as e:
             self.logger.error(f"验证文本失败: {str(e)}")
+            self.logger.error(f"错误详情: {str(e.__class__.__name__)}: {str(e)}")
+            if save_to:
+                self.bot.set_variable(save_to, False)
             return False
 
 class WaitForInputReadyAction(BaseAction):
@@ -311,6 +370,17 @@ class WaitForInputReadyAction(BaseAction):
         try:
             start_time = time.time()
             while time.time() - start_time < timeout:
+                # 使用UIAutomator2检查当前焦点是否在输入框
+                focused = self.ui_animator(focused=True)
+                if focused.exists:
+                    self.logger.info("输框已激活")
+                    return True
+                    
+                time.sleep(check_interval)
+            
+            self.logger.warning("等待输入框激活超时")
+            # 如果UIAutomator2检测失败，尝试使用adb命令
+            try:
                 result = subprocess.run(
                     ['adb', '-s', self.bot.device_id, 'shell', 'dumpsys', 'input_method'],
                     capture_output=True,
@@ -318,12 +388,11 @@ class WaitForInputReadyAction(BaseAction):
                     check=True
                 )
                 if "mInputShown=true" in result.stdout:
-                    self.logger.info("输入框已激活")
+                    self.logger.info("通过adb命令确认输入框已激活")
                     return True
-                    
-                time.sleep(check_interval)
+            except Exception as e:
+                self.logger.error(f"使用adb命令检查输入框状态失败: {str(e)}")
             
-            self.logger.warning("等待输入框激活超时")
             return False
             
         except Exception as e:
@@ -338,7 +407,6 @@ class InputTextAction(BaseAction):
             # 获取要输入的文本并解析变量
             text = params['text']
             if isinstance(text, str) and "${" in text:
-                # 提取变量名
                 var_name = text.replace("${", "").replace("}", "")
                 text = self.bot.get_variable(var_name)
                 if text is None:
@@ -348,77 +416,106 @@ class InputTextAction(BaseAction):
             if not isinstance(text, str):
                 text = str(text)
             
-            # 将空格替换为%s
-            text = text.replace(' ', '%s')
-            
-            # 执行输入命令
-            subprocess.run([
-                'adb', '-s', self.device_id, 'shell', 'input', 'text', text
-            ], check=True)
-            
+            # 使用UIAutomator2输入文本
+            self.ui_animator.send_keys(text)
+            self.logger.info(f"输入文本: {text}")
             return True
             
         except Exception as e:
             self.logger.error(f"输入文本失败: {str(e)}")
-            return False
+            # 如果UIAutomator2失败，尝试使用adb命令作为备选方案
+            try:
+                text = text.replace(' ', '%s')
+                subprocess.run([
+                    'adb', '-s', self.device_id, 'shell', 'input', 'text', text
+                ], check=True)
+                self.logger.info("使用adb命令输入文本成功")
+                return True
+            except Exception as e2:
+                self.logger.error(f"使用adb命令输入文本也失败: {str(e2)}")
+                return False
 
-class GetElementPositionAction(BaseAction):
-    """获取指定文本的位置"""
+class WaitForKeyElementAction(BaseAction):
+    """等待关键元素出现并获取其位置信息"""
     
-    def execute(self, params: Dict[str, Any]) -> Dict[str, int]:
-        text = params['text']
-        region = params.get('region')
-        save_to = params.get('save_to')
-        step_name = params.get('name', 'get_element_position')
+    def execute(self, params: Dict[str, Any]) -> bool:
+        text_pattern = params['text_pattern']  # 文本模式
+        timeout = params.get('timeout', 30)
+        interval = params.get('interval', 1)  # 添加等待间隔参数,默认1秒
+        save_to = params.get('save_to')  # 保存元素信息到变量
+        match_type = params.get('match_type')  # 匹配方式,不指定则尝试所有方式
+        contains_only = params.get('contains_only', False)  # 是否只接受包含而不完全匹配的情况
         
         try:
-            # 获取截图
-            screenshot = self.bot.screenshot_helper.take_screenshot(
-                save_path="temp",
-                filename_prefix="element_position",
-                region=region
-            )
+            self.logger.info(f"开始等待关键元素: {text_pattern} (匹配方式: {match_type or 'all'}, 间隔: {interval}秒, 仅包含匹配: {contains_only})")
             
-            # OCR识别
-            results = self.bot.ocr_helper.extract_text(screenshot)
+            # 定义匹配方式映射
+            selector_map = {
+                'text': (self.ui_animator(text=text_pattern), "text"),
+                'text_contains': (self.ui_animator(textContains=text_pattern), "textContains"),
+                'description': (self.ui_animator(description=text_pattern), "description"),
+                'description_contains': (self.ui_animator(descriptionContains=text_pattern), "descriptionContains")
+            }
             
-            # 获取截图缩放比例
-            scale = self.bot.screenshot_helper.get_scale_factor()
-            
-            # 查找目标文本
-            for item in results:
-                if text in item['text']:
-                    box = item['box']  # box 格式: [[x1,y1], [x2,y1], [x2,y2], [x1,y2]]
-                    
-                    # 调整OCR坐标以考虑缩放
-                    adjusted_box = []
-                    for point in box:
-                        x = int(point[0] / scale)  # 将缩放后的坐标转换回原始坐标
-                        y = int(point[1] / scale)
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                # 如果指定了匹配方式
+                if match_type:
+                    if match_type not in selector_map:
+                        raise ValueError(f"不支持的匹配方式: {match_type}")
+                    selectors = [selector_map[match_type]]
+                else:
+                    # 尝试所有匹配方式
+                    selectors = list(selector_map.values())
+                
+                for selector, selector_type in selectors:
+                    if selector.exists:
+                        element = selector.info
+                        element_text = element.get('text', '') or element.get('contentDescription', '')
                         
-                        if region:
-                            # 如果指定了区域，加上区域偏移
-                            x += region[0]
-                            y += region[1]
-                            
-                        adjusted_box.append([x, y])
-                        
-                    # 计算边界框的位置
-                    position = {
-                        'x1': adjusted_box[0][0],  # 左上角x
-                        'y1': adjusted_box[0][1],  # 左上角y
-                        'x2': adjusted_box[2][0],  # 右下角x
-                        'y2': adjusted_box[2][1]   # 右下角y
-                    }
-                    
-                    if save_to:
-                        self.bot.set_variable(save_to, position)
-                    self.logger.info(f"找到文本 '{text}' 的位置: {position}")
-                    return position
-                    
-            self.logger.error(f"未找到文本: {text}")
-            return {}
+                        # 如果设置了contains_only，检查是否是包含但不完全一致的情况
+                        if contains_only:
+                            if text_pattern in element_text and text_pattern != element_text.strip():
+                                self.logger.info(f"找到包含但不完全一致的关键元素: {element_text}")
+                                if save_to:
+                                    element_info = {
+                                        'bounds': element['bounds'],
+                                        'text': element_text,
+                                        'content_desc': element.get('contentDescription', ''),
+                                        'resource_id': element.get('resourceId', ''),
+                                        'class_name': element['className'],
+                                        'package': element.get('package', ''),
+                                        'clickable': element.get('clickable', False),
+                                        'selected': element.get('selected', False),
+                                        'selector_type': selector_type
+                                    }
+                                    self.bot.set_variable(save_to, element_info)
+                                return True
+                            else:
+                                continue
+                        else:
+                            # 不需要特殊处理，直接返回找到的元素
+                            self.logger.info(f"找到关键元素: {element_text}")
+                            if save_to:
+                                element_info = {
+                                    'bounds': element['bounds'],
+                                    'text': element_text,
+                                    'content_desc': element.get('contentDescription', ''),
+                                    'resource_id': element.get('resourceId', ''),
+                                    'class_name': element['className'],
+                                    'package': element.get('package', ''),
+                                    'clickable': element.get('clickable', False),
+                                    'selected': element.get('selected', False),
+                                    'selector_type': selector_type
+                                }
+                                self.bot.set_variable(save_to, element_info)
+                            return True
+                
+                time.sleep(interval)
+                
+            self.logger.warning(f"等待关键元素超时: {text_pattern}")
+            return False
             
         except Exception as e:
-            self.logger.error(f"获取元素位置失败: {str(e)}")
-            return {}
+            self.logger.error(f"等待关键元素失败: {str(e)}")
+            return False

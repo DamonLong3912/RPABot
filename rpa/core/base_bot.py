@@ -8,6 +8,7 @@ import yaml
 from ..utils.logger import get_logger  # 修改导入路径
 from ..utils.screenshot import ScreenshotHelper
 from ..utils.ocr_helper import OCRHelper
+import uiautomator2 as u2  # 修改导入方式
 
 class BaseBot:
     """RPA基础机器人类"""
@@ -45,6 +46,9 @@ class BaseBot:
         # 初始化工具类
         self.screenshot_helper = ScreenshotHelper(self.device_id)
         self.ocr_helper = OCRHelper()
+        
+        # 初始化UIAutomator2
+        self.ui_animator = u2.connect(self.device_id)  # 使用 u2.connect()
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """加载配置文件

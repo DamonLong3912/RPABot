@@ -24,6 +24,9 @@ class LoopAction(BaseAction):
         break_conditions = params.get('break_conditions', [])
         steps = params.get('steps', [])
         
+        # 清理break conditions相关的step results
+        self._clear_break_condition_results(break_conditions)
+        
         # 先检查一次条件,如果已经满足就直接返回
         if self._check_any_condition(break_conditions):
             return True
@@ -44,6 +47,15 @@ class LoopAction(BaseAction):
                 break
                 
         return True
+        
+    def _clear_break_condition_results(self, conditions: List[Dict[str, Any]]) -> None:
+        """清理与break conditions相关的step results"""
+        for condition in conditions:
+            if condition['type'] == 'step_result':
+                step_name = condition['step']
+                # 只清理break condition中涉及的step result
+                if hasattr(self.bot, '_step_results'):
+                    self.bot._step_results.pop(step_name, None)
     
     def _check_any_condition(self, conditions: List[Dict[str, Any]]) -> bool:
         """检查是否有任一条件满足"""

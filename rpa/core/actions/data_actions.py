@@ -23,13 +23,14 @@ class AppendToListAction(BaseAction):
             
             # 添加新数据
             current_list.append(resolved_data)
+            # 记录日志
+            self.logger.debug(f"向列表 {list_name} 追加数据: {resolved_data}")
             
             # 如果设置了max_length，保持列表长度
             if max_length and len(current_list) > max_length:
                 current_list = current_list[-max_length:]
             
             # 更新变量
-            self.logger.debug(f"更新列表 set_variable {list_name}: {current_list}")
             self.bot.set_variable(list_name, current_list)
             return True
             

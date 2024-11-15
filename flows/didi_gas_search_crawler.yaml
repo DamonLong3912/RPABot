@@ -3,15 +3,15 @@ description: "搜索不同地理位置的加油站信息"
 version: "1.0"
 
 variables:
-  scroll_distance: 280
+  scroll_distance: 300
   station_data: []
   station_name_history: []
   search_locations: [
-    "beijing chaoyang qu",
-    "beijing haidian qu", 
-    "beijing dongcheng qu",
-    "beijing xicheng qu",
-    "beijing fengtai qu"
+    "朝阳区",
+    "海淀区", 
+    "东城区",
+    "西城区",
+    "丰台区"
   ]
 
 prerequisites:
@@ -27,7 +27,7 @@ steps:
   - name: "等待应用启动"
     action: "sleep"
     params:
-      seconds: 3
+      seconds: 1
       
   - name: "处理弹窗"
     action: "handle_popups_until_target"
@@ -64,7 +64,7 @@ steps:
         - name: "等待搜索页面加载"
           action: "sleep"
           params:
-            seconds: 2
+            seconds: 1
 
         - name: "检查历史搜索"
           action: "verify_text_in_region"
@@ -121,7 +121,7 @@ steps:
         - name: "开始循环爬取"
           action: "loop"
           params:
-            max_iterations: 100
+            max_iterations: 30
             break_conditions:
               - type: "step_result"
                 step: "检查重复加油站"
@@ -140,8 +140,9 @@ steps:
               - name: "验证标题栏"
                 action: "verify_text_in_region"
                 params:
-                  region: [400, 120, 680, 200]
+                  region: [400, 100, 680, 200]
                   expected_text: "滴滴加油"
+                  match_type: "text"
                   save_to: "title_verified"
 
               - name: "动态调整滑动距离"
@@ -164,47 +165,72 @@ steps:
                       params:
                         region: [0, 500, 1080, 700]
                         
-                    - name: "等待刷新"
+                    - name: "等待加载"
                       action: "sleep"
                       params:
-                        seconds: 2
+                        seconds: 1
 
                     - name: "验证标题栏"
                       action: "verify_text_in_region"
                       params:
-                        region: [400, 120, 680, 200]
+                        region: [400, 100, 680, 200]
                         expected_text: "滴滴加油"
+                        match_type: "text"
                         save_to: "title_verified"
 
-              - name: "等待加载"
-                action: "sleep"
+              - name: "等待并定位关键元素"
+                action: "wait_for_key_element"
                 params:
-                  seconds: 1
-
-              - name: "获取'详情'位置"
-                action: "get_element_position"
-                params:
-                  text: "详情"
-                  region: [0, 300, 1080, 1000]
-                  save_to: "detail_position"
+                  text_pattern: "油站价¥"
+                  match_type: "description_contains"
+                  save_to: "price_element"
+                  timeout: 10
+                  interval: 0.4
+                  contains_only: true
 
               - name: "获取加油站名称"
                 action: "get_text_from_region"
                 params:
-                  region: [50, "${detail_position.y1 - 250}", 800, "${detail_position.y1 - 160}"]
+                  relative_to: "price_element"
+                  offset_top: -225
+                  offset_bottom: -90
+                  left: 50
+                  right: 900
                   save_to: "current_station_name"
+                  match_type: "description"
+                  timeout: 3
+                  interval: 0.3
 
               - name: "获取地址信息"
                 action: "get_text_from_region"
                 params:
-                  region: [50, "${detail_position.y1 - 150}", 1050, "${detail_position.y1 - 90}"]
+                  relative_to: "price_element"
+                  offset_top: -125
+                  offset_bottom: -50
+                  left: 50
+                  right: 1400
                   save_to: "address_info"
+                  match_type: "description"
+                  timeout: 3
+                  interval: 0.3
 
-              - name: "获取油价信息"
+              - name: "获取油站价"
                 action: "get_text_from_region"
                 params:
-                  region: [50, "${detail_position.y1 - 80}", 1050, "${detail_position.y1 - 30}"]
-                  save_to: "price_info"
+                  element_pattern: "油站价¥"
+                  match_type: "description_contains"
+                  save_to: "station_price"
+                  timeout: 3
+                  interval: 0.3
+
+              - name: "获取指导价"
+                action: "get_text_from_region"
+                params:
+                  element_pattern: "指导价¥"
+                  match_type: "description_contains"
+                  save_to: "guide_price"
+                  timeout: 3
+                  interval: 0.3
 
               - name: "保存数据"
                 action: "append_to_list"
@@ -212,8 +238,10 @@ steps:
                   list: "station_data"
                   data:
                     name: "${current_station_name}"
-                    price: "${price_info}"
+                    station_price: "${station_price}"
+                    guide_price: "${guide_price}"
                     address: "${address_info}"
+                    search_key: "${current_location}"
 
               - name: "点击返回按钮"
                 action: "wait_and_click_region"
@@ -223,7 +251,7 @@ steps:
               - name: "等待首页刷新"
                 action: "sleep"
                 params:
-                  seconds: 2
+                  seconds: 0.5
 
               - name: "向上滑动"
                 action: "scroll"
@@ -241,13 +269,13 @@ steps:
                 params:
                   list: "station_name_history"
                   data: "${current_station_name}"
-                  max_length: 2
+                  max_length: 3
 
               - name: "检查重复加油站"
                 action: "check_repeated_value"
                 params:
                   list: "station_name_history"
-                  min_length: 2
+                  min_length: 3
                   save_to: "reached_bottom"
 
   - name: "导出数据"
