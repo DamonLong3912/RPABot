@@ -11,7 +11,8 @@ from rpa.utils.logger import setup_logger, get_logger
 
 def parse_args():
     parser = argparse.ArgumentParser(description='RPA Framework 运行器')
-    parser.add_argument('--config', '-c', required=True, help='流程配置文件路径')
+    parser.add_argument('--flow', '-f', required=True, help='流程配置文件路径')
+    parser.add_argument('--config', default='config.yaml', help='全局配置文件路径')
     parser.add_argument('--debug', '-d', action='store_true', help='启用调试模式')
     parser.add_argument('--dev', action='store_true', help='开发环境模式')
     parser.add_argument('--log', '-l', default='run.log', help='日志文件路径')
@@ -81,13 +82,13 @@ def main():
         logger.info("运行在开发环境模式")
     
     try:
-        # 读取配置文件
-        config_path = Path(args.config)
-        if not config_path.is_absolute():
-            config_path = Path(os.environ.get('RPA_PROJECT_ROOT', '')) / config_path
+        # 读取流程配置文件
+        flow_path = Path(args.flow)
+        if not flow_path.is_absolute():
+            flow_path = Path(os.environ.get('RPA_PROJECT_ROOT', '')) / flow_path
             
-        logger.info(f"加载流程配置文件: {config_path}")
-        with open(config_path, 'r', encoding='utf-8') as f:
+        logger.info(f"加载流程配置文件: {flow_path}")
+        with open(flow_path, 'r', encoding='utf-8') as f:
             flow_config = yaml.safe_load(f)
             
         # 打印流程信息
@@ -95,8 +96,8 @@ def main():
         logger.info(f"流程版本: {flow_config.get('version')}")
         logger.info(f"流程描述: {flow_config.get('description')}")
         
-        # 初始化机器人，启用调试模式
-        bot = BaseBot(debug=args.debug)
+        # 初始化机器人，传入配置文件路径
+        bot = BaseBot(config_path=args.config, debug=args.debug)
         
         # 执行流程
         logger.info(f"开始执行流程: {flow_config.get('name', '未命名流程')}")

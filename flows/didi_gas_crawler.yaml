@@ -33,12 +33,12 @@ steps:
         - name: "新人神券弹窗"
           patterns: ["新人天天神券掉落"]
           action: "click_region"
-          click_region: [980, 120, 1060, 200]  # 右上角关闭按钮区域
+          click_region: [940, 600, 1080, 1200]
           priority: 1
         - name: "透明遮罩层"
           patterns: ["快来抢劵"]
           action: "click_region"
-          click_region: [980, 120, 1060, 200]  # 右上角关闭按钮区域
+          click_region: [0, 1600, 1080, 1700]
           priority: 2
 
   - name: "列表滚动到顶部"

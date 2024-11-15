@@ -12,11 +12,19 @@ from ..utils.ocr_helper import OCRHelper
 class BaseBot:
     """RPA基础机器人类"""
     
-    def __init__(self, debug=False):
+    def __init__(self, config_path, debug=False):
+        # 加载配置文件
+        self.config = self._load_config(config_path)
+        
         self.logger = get_logger(__name__)
-        self.debug = debug
+        # 优先使用传入的debug参数,其次使用配置文件中的设置
+        self.debug = debug or self.config.get('debug', False)
         self.debug_dir = None
-        self.current_step_index = 0  # 添加步骤序号计数器
+        self.current_step_index = 0
+        
+        # 从配置文件获取设备连接信息
+        device_config = self.config.get('device', {})
+        self.device_ip = device_config.get('ip')
         
         if self.debug:
             # 创建调试输出目录
@@ -26,8 +34,9 @@ class BaseBot:
             self.logger.info(f"调试模式已启用，输出目录: {self.debug_dir}")
         
         # 设置环境变量
+        assets_dir = self.config.get('assets_dir', 'assets')
         self.env = {
-            "ASSETS_DIR": str(Path(__file__).parent.parent / "assets"),
+            "ASSETS_DIR": str(Path(__file__).parent.parent / assets_dir),
         }
         
         # 检查并初始化设备
@@ -36,6 +45,30 @@ class BaseBot:
         # 初始化工具类
         self.screenshot_helper = ScreenshotHelper(self.device_id)
         self.ocr_helper = OCRHelper()
+        
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """加载配置文件
+        
+        Args:
+            config_path: 配置文件路径
+            
+        Returns:
+            配置字典
+            
+        Raises:
+            FileNotFoundError: 配置文件不存在时抛出
+            yaml.YAMLError: 配置文件格式错误时抛出
+        """
+        config_path = Path(config_path)
+        if not config_path.exists():
+            self.logger.warning(f"配置文件 {config_path} 不存在，将使用默认配置")
+            return {}
+            
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f) or {}
+        except yaml.YAMLError as e:
+            raise RuntimeError(f"配置文件格式错误: {str(e)}")
         
     def _init_device(self) -> None:
         """初始化并检查Android设备
@@ -47,19 +80,24 @@ class BaseBot:
             # 启动ADB服务器
             subprocess.run(['adb', 'start-server'], check=True)
             
-            # 获取设备列表
-            devices = self._get_connected_devices()
-            
-            if not devices:
-                raise RuntimeError("未找到已连接的Android设备")
-                
-            if len(devices) > 1:
-                self.logger.warning(f"检测到多个设备: {devices}")
-                self.logger.warning(f"将使用第一个设备: {devices[0]}")
-                
-            # 使用第一个设备
-            self.device_id = devices[0]
-            self.logger.info(f"已连接设备: {self.device_id}")
+            # 如果指定了IP地址，通过IP连接设备
+            if self.device_ip:
+                try:
+                    # 先断开可能存在的连接
+                    subprocess.run(['adb', 'disconnect', self.device_ip], 
+                                 capture_output=True, 
+                                 check=False)
+                    # 连接设备
+                    result = subprocess.run(['adb', 'connect', self.device_ip], 
+                                         capture_output=True, 
+                                         text=True,
+                                         check=True)
+                    if 'connected' not in result.stdout.lower():
+                        raise RuntimeError(f"无法连接到设备 {self.device_ip}")
+                    self.logger.info(f"已通过IP连接设备: {self.device_ip}")
+                    self.device_id = self.device_ip  # 直接使用IP作为设备ID
+                except subprocess.CalledProcessError as e:
+                    raise RuntimeError(f"连接设备 {self.device_ip} 失败: {str(e)}")
             
             # 检查设备状态
             self._check_device_status()
