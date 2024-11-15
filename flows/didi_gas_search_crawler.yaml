@@ -5,6 +5,7 @@ version: "1.0"
 variables:
   scroll_distance: 280
   station_data: []
+  station_name_history: []
   search_locations: [
     "beijing chaoyang qu",
     "beijing haidian qu", 
@@ -40,7 +41,7 @@ steps:
         - name: "新人神券弹窗"
           patterns: ["新人天天神券掉落"]
           action: "click_region"
-          click_region: [940, 600, 1080, 1200]
+          click_region: [940, 600, 1080, 1100]
           priority: 1
         - name: "透明遮罩层"
           patterns: ["快来抢劵"]
@@ -123,7 +124,7 @@ steps:
             max_iterations: 100
             break_conditions:
               - type: "step_result"
-                step: "检查是否到底"
+                step: "检查重复加油站"
                 value: true
             steps:
               - name: "点击一个加油站"
@@ -235,11 +236,18 @@ steps:
                 params:
                   seconds: 3
 
-              - name: "检查是否到底"
-                action: "verify_text_in_region"
+              - name: "更新加油站历史"
+                action: "append_to_list"
                 params:
-                  region: [0, 1800, 1080, 2200]
-                  expected_text: "到底了"
+                  list: "station_name_history"
+                  data: "${current_station_name}"
+                  max_length: 2
+
+              - name: "检查重复加油站"
+                action: "check_repeated_value"
+                params:
+                  list: "station_name_history"
+                  min_length: 2
                   save_to: "reached_bottom"
 
   - name: "导出数据"

@@ -25,24 +25,8 @@ class LoopAction(BaseAction):
         steps = params.get('steps', [])
         
         # 先检查一次条件,如果已经满足就直接返回
-        for condition in break_conditions:
-            if condition['type'] == 'step_result':
-                step_name = condition['step']
-                expected_value = condition['value']
-                step_result = self.bot._get_step_result(step_name)
-                
-                if step_result == expected_value:
-                    self.logger.info(f"初始条件已满足: {step_name} = {expected_value}")
-                    return True
-                    
-            elif condition['type'] == 'variable':
-                var_name = condition['name']
-                expected_value = condition['value']
-                var_value = self.bot.get_variable(var_name)
-                
-                if var_value == expected_value:
-                    self.logger.info(f"初始条件已满足: {var_name} = {expected_value}")
-                    return True
+        if self._check_any_condition(break_conditions):
+            return True
         
         # 如果条件未满足,则开始循环
         iteration = 0
@@ -55,33 +39,34 @@ class LoopAction(BaseAction):
                 self.bot._execute_step(step)
             
             # 检查退出条件
-            should_break = False
-            for condition in break_conditions:
-                if condition['type'] == 'step_result':
-                    step_name = condition['step']
-                    expected_value = condition['value']
-                    step_result = self.bot._get_step_result(step_name)
-                    
-                    if step_result == expected_value:
-                        self.logger.info(f"满足退出条件: {step_name} = {expected_value}")
-                        should_break = True
-                        break
-                        
-                elif condition['type'] == 'variable':
-                    var_name = condition['name']
-                    expected_value = condition['value']
-                    var_value = self.bot.get_variable(var_name)
-                    
-                    if var_value == expected_value:
-                        self.logger.info(f"满足退出条件: {var_name} = {expected_value}")
-                        should_break = True
-                        break
-            
-            if should_break:
+            if self._check_any_condition(break_conditions):
                 self.logger.info("循环退出")
                 break
                 
         return True
+    
+    def _check_any_condition(self, conditions: List[Dict[str, Any]]) -> bool:
+        """检查是否有任一条件满足"""
+        for condition in conditions:
+            if condition['type'] == 'step_result':
+                step_name = condition['step']
+                expected_value = condition['value']
+                step_result = self.bot._get_step_result(step_name)
+                
+                if step_result == expected_value:
+                    self.logger.info(f"满足退出条件: {step_name} = {expected_value}")
+                    return True
+                    
+            elif condition['type'] == 'variable':
+                var_name = condition['name']
+                expected_value = condition['value']
+                var_value = self.bot.get_variable(var_name)
+                
+                if var_value == expected_value:
+                    self.logger.info(f"满足退出条件: {var_name} = {expected_value}")
+                    return True
+        
+        return False
 
 class ForEachAction(BaseAction):
     """循环遍历列表中的每个元素"""
@@ -123,4 +108,42 @@ class ForEachAction(BaseAction):
             
         except Exception as e:
             self.logger.error(f"ForEach循环执行失败: {str(e)}")
+            return False
+
+class CheckRepeatedValueAction(BaseAction):
+    """检查列表中的值是否全部相同"""
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        try:
+            # 获取参数
+            list_param = params['list']
+            min_length = params.get('min_length', 1)
+            save_to = params.get('save_to')
+            
+            # 获取列表数据
+            items = self.bot.get_variable(list_param)
+            self.logger.info(f"检查列表内容: {list_param} = {items}")
+            if not isinstance(items, list):
+                self.logger.error(f"参数必须是列表类型，当前类型: {type(items)}")
+                return False
+                
+            # 如果列表长度小于要求的最小长度，返回False
+            if len(items) < min_length:
+                result = False
+            else:
+                # 检查最近min_length个元素是否相同
+                recent_items = items[-min_length:]
+                result = all(x == recent_items[0] for x in recent_items)
+            
+            # 保存结果到变量
+            if save_to:
+                self.bot.set_variable(save_to, result)
+            
+            if result:
+                self.logger.info(f"检测到连续{min_length}次重复值: {items[-1]}")
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"检查重复值失败: {str(e)}")
             return False

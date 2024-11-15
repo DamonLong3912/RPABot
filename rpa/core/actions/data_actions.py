@@ -5,43 +5,69 @@ import yaml
 from pathlib import Path
 
 class AppendToListAction(BaseAction):
-    """向列表添加数据"""
+    """向列表追加数据"""
     
     def execute(self, params: Dict[str, Any]) -> bool:
-        list_name = params['list']
-        data = params['data']
-        
         try:
-            # 获取当前列表
-            current_list = self.bot.get_variable(list_name)
+            list_name = params['list']
+            data = params['data']
+            max_length = params.get('max_length')
             
+            # 获取当前列表
+            current_list = self.bot.get_variable(list_name, [])
             if not isinstance(current_list, list):
                 current_list = []
+                
+            # 解析数据
+            resolved_data = self._resolve_data(data)
             
-            # 解析数据中的变量引用
-            resolved_data = {}
-            for key, value in data.items():
-                if isinstance(value, str):
-                    # 直接从bot中获取变量值，而不是解析变量引用字符串
-                    var_name = value.replace("${", "").replace("}", "")
-                    resolved_value = self.bot.get_variable(var_name)
-                    self.logger.debug(f"解析变量 {var_name}: {resolved_value}")
-                    resolved_data[key] = resolved_value
-                else:
-                    resolved_data[key] = value
-            
-            # 添加数据
+            # 添加新数据
             current_list.append(resolved_data)
             
-            # 更新变量
-            self.bot.set_variable(list_name, current_list)
+            # 如果设置了max_length，保持列表长度
+            if max_length and len(current_list) > max_length:
+                current_list = current_list[-max_length:]
             
-            self.logger.info(f"向列表 {list_name} 添加数据: {resolved_data}")
+            # 更新变量
+            self.logger.debug(f"更新列表 set_variable {list_name}: {current_list}")
+            self.bot.set_variable(list_name, current_list)
             return True
             
         except Exception as e:
-            self.logger.error(f"添加数据失败: {str(e)}")
+            self.logger.error(f"追加数据到列表失败: {str(e)}")
             return False
+            
+    def _resolve_data(self, data: Any) -> Any:
+        """解析数据中的变量引用
+        
+        处理两种情况:
+        1. 简单变量引用: "${variable_name}"
+        2. 复杂数据结构: {"key": "${variable_name}", ...}
+        """
+        if isinstance(data, str):
+            # 情况1: 简单变量引用
+            if data.startswith("${") and data.endswith("}"):
+                var_name = data[2:-1]
+                return self.bot.get_variable(var_name)
+            return data
+            
+        elif isinstance(data, dict):
+            # 情况2: 复杂数据结构
+            resolved_dict = {}
+            for key, value in data.items():
+                if isinstance(value, str) and "${" in value:
+                    # 解析变量引用
+                    var_name = value[2:-1]
+                    resolved_dict[key] = self.bot.get_variable(var_name)
+                else:
+                    resolved_dict[key] = value
+            return resolved_dict
+            
+        elif isinstance(data, list):
+            # 处理列表中的变量引用
+            return [self._resolve_data(item) for item in data]
+            
+        return data
 
 class ExportDataAction(BaseAction):
     """导出数据到文件"""

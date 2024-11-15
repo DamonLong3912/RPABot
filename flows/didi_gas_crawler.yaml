@@ -33,7 +33,7 @@ steps:
         - name: "新人神券弹窗"
           patterns: ["新人天天神券掉落"]
           action: "click_region"
-          click_region: [940, 600, 1080, 1200]
+          click_region: [940, 600, 1080, 1100]
           priority: 1
         - name: "透明遮罩层"
           patterns: ["快来抢劵"]
