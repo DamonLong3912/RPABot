@@ -26,14 +26,38 @@
 
 ## 快速开始
 
-1. 安装依赖
+1. 环境配置
 ```bash
-pip install -r requirements.txt
+# 克隆项目
+git clone https://github.com/your-username/rpa_framework.git
+cd rpa_framework
+
+# 运行环境配置脚本
+chmod +x setup.sh
+./setup.sh
 ```
 
-2. 初始化设备
-```bash
-python run.py --init-device
+setup.sh 会自动完成以下配置：
+- 检查 Python 版本要求(3.8+)
+- 创建并激活虚拟环境
+- 安装项目依赖
+- 检查 ADB 工具
+- 检查设备连接
+- 创建必要的目录
+- 设置执行权限
+
+2. 配置设备连接
+```yaml
+# config.yaml
+device:
+  # 设备IP地址,格式为ip:port,如192.168.1.100:5555,留空则使用USB连接
+  ip: "172.16.1.9:39847"  
+
+# 调试配置
+debug: true
+
+# 其他全局配置
+assets_dir: "assets"
 ```
 
 3. 编写流程配置
@@ -78,7 +102,14 @@ steps:
 
 4. 运行流程
 ```bash
-python run.py --config flows/example_flow.yaml --debug
+# 确保在虚拟环境中
+source venv/bin/activate
+
+# 运行流程(使用默认配置文件config.yaml)
+python run.py --flow flows/example_flow.yaml
+
+# 指定配置文件
+python run.py --flow flows/example_flow.yaml --config custom_config.yaml
 ```
 
 ## 项目结构
