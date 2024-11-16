@@ -186,4 +186,33 @@ class GetVariableAction(BaseAction):
             
         except Exception as e:
             self.logger.error(f"获取变量失败: {str(e)}")
-            return None 
+            return None
+
+class GetListItemAction(BaseAction):
+    """从列表中获取指定索引的项目"""
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        list_var = params['list']  # 列表变量名
+        index = params.get('index', 0)  # 默认取第一项
+        save_to = params['save_to']  # 保存结果的变量名
+        
+        try:
+            # 获取列表
+            source_list = self.bot.get_variable(list_var)
+            if not source_list or not isinstance(source_list, list):
+                self.logger.warning(f"列表为空或不是列表类型: {list_var}")
+                return False
+                
+            if index >= len(source_list):
+                self.logger.warning(f"索引超出列表范围: {index} >= {len(source_list)}")
+                return False
+                
+            # 获取指定项并保存
+            value = source_list[index]
+            self.bot.set_variable(save_to, value)
+            self.logger.info(f"获取列表项成功: {value}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"获取列表项失败: {str(e)}")
+            return False 

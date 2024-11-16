@@ -18,7 +18,8 @@ from .data_actions import (
     AppendToListAction,
     ExportDataAction,
     SetVariableAction,
-    GetVariableAction
+    GetVariableAction,
+    GetListItemAction
 )
 from .flow_actions import (
     LoopAction,
@@ -32,6 +33,7 @@ from .app_actions import (
     StartAppAction,
     WaitForAppInstalledAction
 )
+from .node_actions import GetNodeDescendantsContentAction, WaitAndClickNodeAction
 
 # 动作类型映射表
 ACTION_MAP = {
@@ -57,7 +59,10 @@ ACTION_MAP = {
     'wait_for_app_installed': WaitForAppInstalledAction,
     'for_each': ForEachAction,
     'check_repeated_value': CheckRepeatedValueAction,
-    'wait_for_key_element': WaitForKeyElementAction
+    'wait_for_key_element': WaitForKeyElementAction,
+    'get_node_descendants_content': GetNodeDescendantsContentAction,
+    'wait_and_click_node': WaitAndClickNodeAction,
+    'get_list_item': GetListItemAction
 }
 
 def get_action_class(action_type: str) -> type:
