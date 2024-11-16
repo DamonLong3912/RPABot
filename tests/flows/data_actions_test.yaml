@@ -1,0 +1,45 @@
+name: "数据动作测试用例"
+version: "1.0"
+description: "测试数据处理相关动作"
+
+variables:
+  test_list: []
+  test_var: "初始值"
+
+steps:
+  # AppendToListAction测试
+  - name: "测试添加到列表"
+    action: "append_to_list"
+    params:
+      list_name: "test_list"
+      value: "新项目"
+
+  # ExportDataAction测试
+  - name: "测试导出数据(JSON)"
+    action: "export_data"
+    params:
+      data: "${test_list}"
+      output_path: "output/test_data.json"
+      format: "json"
+
+  # SetVariableAction测试
+  - name: "测试设置变量"
+    action: "set_variable"
+    params:
+      name: "test_var"
+      value: "新值"
+
+  # GetVariableAction测试
+  - name: "测试获取变量"
+    action: "get_variable"
+    params:
+      name: "test_var"
+      save_to: "retrieved_var"
+
+  # GetListItemAction测试
+  - name: "测试获取列表项"
+    action: "get_list_item"
+    params:
+      list_name: "test_list"
+      index: 0
+      save_to: "list_item" 

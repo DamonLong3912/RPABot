@@ -1,0 +1,44 @@
+name: "OCR动作测试用例"
+version: "1.0"
+description: "测试OCR相关动作"
+
+variables:
+  target_text: "测试文本"
+  screenshot_region: [0, 0, 1080, 2400]
+
+steps:
+  # GetTextFromRegionAction测试
+  - name: "测试获取区域文本"
+    action: "get_text_from_region"
+    params:
+      region: [100, 200, 300, 400]
+      save_to: "region_text"
+
+  # VerifyTextInRegionAction测试
+  - name: "测试验证区域文本"
+    action: "verify_text_in_region"
+    params:
+      region: [100, 200, 300, 400]
+      expected_text: "期望文本"
+      match_type: "contains"
+      save_to: "verify_result"
+
+  # WaitAndClickOCRTextAction测试
+  - name: "测试等待并点击文本"
+    action: "wait_and_click_ocr_text"
+    params:
+      text: "点击这里"
+      timeout: 5
+      check_interval: 1
+      screenshot_region: [0, 0, 1080, 2400]
+
+  # HandlePopupsUntilTargetAction测试
+  - name: "测试处理弹窗"
+    action: "handle_popups_until_target"
+    params:
+      target_text: "目标文本"
+      timeout: 30
+      popups:
+        - patterns: ["确定", "同意"]
+          action: "click_first"
+          priority: 1 

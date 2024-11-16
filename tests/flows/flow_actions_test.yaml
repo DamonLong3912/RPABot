@@ -1,0 +1,50 @@
+name: "流程控制动作测试用例"
+version: "1.0"
+description: "测试流程控制相关动作"
+
+variables:
+  counter: 0
+  test_list: ["item1", "item2", "item3"]
+
+steps:
+  # LoopAction测试
+  - name: "测试循环"
+    action: "loop"
+    params:
+      max_iterations: 3
+      break_conditions:
+        - type: "variable"
+          name: "counter"
+          value: 2
+      steps:
+        - name: "增加计数器"
+          action: "set_variable"
+          params:
+            name: "counter"
+            value: "${counter + 1}"
+
+  # SleepAction测试
+  - name: "测试等待"
+    action: "sleep"
+    params:
+      seconds: 1.5
+
+  # ForEachAction测试
+  - name: "测试遍历"
+    action: "for_each"
+    params:
+      list: "${test_list}"
+      var_name: "current_item"
+      steps:
+        - name: "打印当前项"
+          action: "set_variable"
+          params:
+            name: "last_item"
+            value: "${current_item}"
+
+  # CheckRepeatedValueAction测试
+  - name: "测试重复值检查"
+    action: "check_repeated_value"
+    params:
+      value: "test_value"
+      save_to: "is_repeated" 

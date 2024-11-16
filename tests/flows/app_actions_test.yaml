@@ -1,0 +1,37 @@
+name: "应用动作测试用例"
+version: "1.0"
+description: "测试应用管理相关动作"
+
+variables:
+  test_package: "com.example.app"
+  test_apk_path: "assets/test.apk"
+
+steps:
+  # CheckAndInstallAppAction测试
+  - name: "测试检查并安装应用"
+    action: "check_and_install_app"
+    params:
+      package: "${test_package}"
+      apk_path: "${test_apk_path}"
+
+  # VerifyAppInstalledAction测试
+  - name: "测试验证应用已安装"
+    action: "verify_app_installed"
+    params:
+      package: "${test_package}"
+      save_to: "is_installed"
+
+  # StartAppAction测试
+  - name: "测试启动应用"
+    action: "start_app"
+    params:
+      package: "${test_package}"
+      wait: true
+
+  # WaitForAppInstalledAction测试
+  - name: "测试等待应用安装"
+    action: "wait_for_app_installed"
+    params:
+      package: "${test_package}"
+      timeout: 60
+      check_interval: 1 

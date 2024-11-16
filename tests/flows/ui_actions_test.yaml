@@ -1,0 +1,111 @@
+name: "UI动作测试用例"
+version: "1.0"
+description: "测试UI相关动作"
+
+variables:
+  test_region: [100, 200, 300, 400]
+  dynamic_text: "动态文本变量"
+
+steps:
+  # ClickRegionAction测试
+  - name: "测试点击区域"
+    action: "click_region"
+    params:
+      region: [500, 800, 600, 900]
+
+  # WaitAndClickRegionAction测试
+  - name: "测试等待并点击区域"
+    action: "wait_and_click_region"
+    params:
+      region: [100, 200, 300, 400]
+      timeout: 5
+      name: "test_click"
+
+  # ScrollAction测试
+  - name: "测试向上滑动"
+    action: "scroll"
+    params:
+      direction: "up"
+      distance: 300
+      duration: 0.5
+
+  - name: "测试向下滑动"
+    action: "scroll"
+    params:
+      direction: "down"
+      distance: 300
+      duration: 0.5
+
+  # SwipeAction测试
+  - name: "测试自定义滑动"
+    action: "swipe"
+    params:
+      start_x: 500
+      start_y: 1000
+      end_x: 500
+      end_y: 200
+      duration: 0.5
+
+  # WaitAndClickNodeAction测试
+  - name: "测试text精确匹配"
+    action: "wait_and_click_node"
+    params:
+      locate_by: "text"
+      text: "确定"
+      match_type: "exact"
+      timeout: 5
+      interval: 0.5
+
+  - name: "测试text包含匹配"
+    action: "wait_and_click_node"
+    params:
+      locate_by: "text"
+      text: "同意"
+      match_type: "contains"
+      timeout: 5
+      interval: 0.5
+
+  - name: "测试description精确匹配"
+    action: "wait_and_click_node"
+    params:
+      locate_by: "description"
+      text: "关闭按钮"
+      match_type: "exact"
+      timeout: 5
+      interval: 0.5
+
+  - name: "测试description包含匹配"
+    action: "wait_and_click_node"
+    params:
+      locate_by: "description"
+      text: "按钮"
+      match_type: "contains"
+      timeout: 5
+      interval: 0.5
+
+  - name: "测试变量引用"
+    action: "wait_and_click_node"
+    params:
+      locate_by: "text"
+      text: "${dynamic_text}"
+      match_type: "exact"
+      timeout: 5
+      interval: 0.5
+
+  - name: "测试空文本"
+    action: "wait_and_click_node"
+    params:
+      locate_by: "text"
+      text: ""
+      match_type: "exact"
+      timeout: 3
+      interval: 0.5
+
+  - name: "测试不支持的定位方式"
+    action: "wait_and_click_node"
+    params:
+      locate_by: "id"
+      text: "some_id"
+      match_type: "exact"
+      timeout: 3
+      interval: 0.5
