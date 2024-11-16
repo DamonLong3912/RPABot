@@ -43,6 +43,12 @@ rpa_framework/
 │   └── assets/       # 内置资源文件
 ├── flows/            # 流程配置文件
 ├── tests/            # 测试用例
+│   └── flows/         # 流程测试用例
+│       ├── ui_actions_test.yaml     # UI动作测试
+│       ├── ocr_actions_test.yaml    # OCR动作测试
+│       ├── data_actions_test.yaml   # 数据动作测试
+│       ├── app_actions_test.yaml    # 应用动作测试
+│       └── flow_actions_test.yaml   # 流程控制动作测试
 ├── debug/            # 调试输出目录
 ├── logs/             # 日志输出目录
 ├── CONTRIBUTING.md   # 贡献指南
@@ -67,6 +73,28 @@ rpa_framework/
 
 ### 需求文档
 - [需求概述](requirements/overview.md) - 项目需求概览
+
+### 测试文档
+- UI动作测试 (tests/flows/ui_actions_test.yaml)
+  - 区域点击
+  - 滑动操作
+  - 节点查找与点击
+- OCR动作测试 (tests/flows/ocr_actions_test.yaml)
+  - 文字识别
+  - 文字验证
+  - 智能点击
+- 数据动作测试 (tests/flows/data_actions_test.yaml)
+  - 变量操作
+  - 数据导出
+  - 列表处理
+- 应用动作测试 (tests/flows/app_actions_test.yaml)
+  - 应用安装
+  - 应用启动
+  - 状态检查
+- 流程控制测试 (tests/flows/flow_actions_test.yaml)
+  - 循环控制
+  - 条件判断
+  - 变量操作
 
 ### 其他文档
 - [开发历史](HISTORY.md) - 版本更新记录

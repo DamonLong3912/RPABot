@@ -132,9 +132,15 @@ rpa_framework/
 │   │   ├── screenshot.py     # 截图工具(UIAutomator2)
 │   │   ├── ocr_helper.py    # OCR工具
 │   │   └── app_helper.py    # 应用管理
-│   └── assets/        # 内置资源
-├── flows/             # 流程配置
+│   └── assets/        # 内置资源文件
+├── flows/             # 流程配置文件
 ├── tests/             # 测试用例
+│   └── flows/         # 流程测试用例
+│       ├── ui_actions_test.yaml     # UI动作测试
+│       ├── ocr_actions_test.yaml    # OCR动作测试
+│       ├── data_actions_test.yaml   # 数据动作测试
+│       ├── app_actions_test.yaml    # 应用动作测试
+│       └── flow_actions_test.yaml   # 流程控制动作测试
 ├── debug/             # 调试输出
 └── logs/              # 日志输出
 ```
@@ -163,3 +169,24 @@ v1.6 UI自动化增强
 ## 许可证
 
 MIT License
+
+## 测试
+
+项目包含完整的测试用例集,按功能模块划分:
+
+```bash
+# 运行UI动作测试
+python run.py --flow tests/flows/ui_actions_test.yaml
+
+# 运行OCR动作测试
+python run.py --flow tests/flows/ocr_actions_test.yaml
+
+# 运行数据动作测试
+python run.py --flow tests/flows/data_actions_test.yaml
+
+# 运行应用动作测试
+python run.py --flow tests/flows/app_actions_test.yaml
+
+# 运行流程控制动作测试
+python run.py --flow tests/flows/flow_actions_test.yaml
+```
