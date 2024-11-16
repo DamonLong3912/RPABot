@@ -5,6 +5,7 @@
 ## 功能特点
 
 - 动作系统：模块化的动作设计，支持UI、OCR、数据处理、流程控制等多种动作类型
+- UI自动化：集成UIAutomator2，提供稳定可靠的UI操作能力
 - 配置驱动：通过YAML配置文件定义自动化流程
 - OCR支持：集成PaddleOCR，支持文字识别、智能点击和弹窗处理
 - 应用管理：支持应用安装、启动和状态检查
@@ -13,12 +14,14 @@
 - 性能优化：针对OCR场景的图像预处理优化
 - 扩展机制：支持自定义动作和工具扩展
 - 流程控制：支持循环、条件判断和变量操作
+- 网络监控：支持应用网络状态监控和异常处理
 
 ## 环境要求
 
 - Python 3.8+
 - Android设备或模拟器（已开启USB调试）
 - ADB工具（已配置环境变量）
+- UIAutomator2（用于UI自动化）
 - PaddleOCR（用于文字识别）
 
 ## 快速开始
@@ -28,7 +31,12 @@
 pip install -r requirements.txt
 ```
 
-2. 编写流程配置
+2. 初始化设备
+```bash
+python run.py --init-device
+```
+
+3. 编写流程配置
 ```yaml
 name: "示例流程"
 version: "1.0"
@@ -37,6 +45,14 @@ prerequisites:
   app:
     package: "com.example.app"
     apk_path: "${ASSETS_DIR}/app.apk"
+
+monitors:
+  network:
+    enabled: true
+    check_interval: 1
+  logcat:
+    enabled: true
+    tags: ["ActivityManager"]
 
 steps:
   - name: "安装应用"
@@ -49,6 +65,7 @@ steps:
     action: "start_app"
     params:
       package: "${prerequisites.app.package}"
+      wait: true
 
   - name: "处理弹窗"
     action: "handle_popups_until_target"
@@ -59,7 +76,7 @@ steps:
           action: "click_first"
 ```
 
-3. 运行流程
+4. 运行流程
 ```bash
 python run.py --config flows/example_flow.yaml --debug
 ```
@@ -74,13 +91,21 @@ rpa_framework/
 │   │   ├── actions.md         # 动作系统设计
 │   │   └── flow_schema.md     # 流程定义格式
 │   └── api/           # API文档
+│       └── core/      # 核心API文档
 ├── rpa/               # 核心代码
 │   ├── core/          # 框架核心
 │   │   ├── actions/   # 动作实现
+│   │   ├── network_monitor.py # 网络监控
 │   │   └── base_bot.py # 基础机器人
-│   └── utils/         # 工具类
+│   ├── utils/         # 工具类
+│   │   ├── screenshot.py     # 截图工具(UIAutomator2)
+│   │   ├── ocr_helper.py    # OCR工具
+│   │   └── app_helper.py    # 应用管理
+│   └── assets/        # 内置资源
 ├── flows/             # 流程配置
-└── tests/             # 测试用例
+├── tests/             # 测试用例
+├── debug/             # 调试输出
+└── logs/              # 日志输出
 ```
 
 ## 文档索引
@@ -88,15 +113,17 @@ rpa_framework/
 - [架构设计](docs/design/architecture.md)
 - [动作系统](docs/design/actions.md)
 - [流程格式](docs/design/flow_schema.md)
+- [API文档](docs/api/core/)
 - [历史记录](docs/HISTORY.md)
 
 ## 最新版本
 
-v1.5 动作系统优化
-- 优化动作执行流程
-- 完善动作参数验证
-- 增强动作调试功能
-- 改进错误处理机制
+v1.6 UI自动化增强
+- 集成UIAutomator2框架
+- 优化UI操作稳定性
+- 增强输入框处理能力
+- 添加网络状态监控
+- 改进设备初始化流程
 
 ## 贡献指南
 

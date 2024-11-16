@@ -5,11 +5,11 @@
 ### ScreenshotHelper
 ```python
 class ScreenshotHelper:
-    def __init__(self, device_id: str):
+    def __init__(self, device: u2.Device):
         """初始化截图助手
         
         Args:
-            device_id: 设备ID
+            device: UIAutomator2设备实例
         """
 ```
 
@@ -30,6 +30,21 @@ def take_screenshot(self,
             
     Returns:
         str: 截图文件的完整路径
+        
+    Notes:
+        - 使用UIAutomator2的screenshot接口
+        - 支持区域截图和图像预处理
+        - 自动进行缩放和优化
+    """
+```
+
+### get_window_size
+```python
+def get_window_size(self) -> Tuple[int, int]:
+    """获取屏幕尺寸
+    
+    Returns:
+        Tuple[int, int]: (宽度, 高度)
     """
 ```
 
@@ -60,9 +75,9 @@ def get_real_coordinates(self, x: int, y: int) -> Tuple[int, int]:
 ## 图像处理流程
 
 1. 截图获取
-   - 使用ADB screencap命令获取原始截图
-   - 临时保存到设备/data/local/tmp/目录
-   - 通过ADB pull命令获取到本地
+   - 使用UIAutomator2的screenshot接口
+   - 直接返回PIL.Image对象
+   - 无需临时文件传输
 
 2. 图像预处理
    - 区域裁剪（如果指定了region）
@@ -74,13 +89,35 @@ def get_real_coordinates(self, x: int, y: int) -> Tuple[int, int]:
    - 使用PIL进行高效图像处理
    - 支持区域截图减少数据量
    - 图像预处理减少OCR负担
-   - 自动清理设备临时文件
+   - 内存优化，避免大图片
+
+## 调试支持
+
+### 调试信息
+- 原始截图保存
+- 处理后图片保存
+- 坐标转换记录
+- 性能统计信息
+
+### 调试目录结构
+```
+debug/
+└── {timestamp}/
+    └── screenshot/
+        ├── original.png    # 原始截图
+        ├── processed.jpg   # 处理后图片
+        └── metadata.json   # 元数据信息
+```
 
 ## 使用示例
 
 ```python
 # 初始化
-screenshot_helper = ScreenshotHelper("device_id")
+screenshot_helper = ScreenshotHelper(device)
+
+# 获取屏幕尺寸
+width, height = screenshot_helper.get_window_size()
+print(f"屏幕尺寸: {width}x{height}")
 
 # 全屏截图
 full_path = screenshot_helper.take_screenshot(
@@ -107,12 +144,13 @@ print(f"实际坐标: ({real_x}, {real_y})")
    - 坐标值必须在屏幕范围内
    - 建议使用标准分辨率(1080x2400)
 
-2. 文件管理
-   - 自动创建保存目录
-   - 文件名格式: {prefix}_{timestamp}.jpg
-   - 自动清理临时文件
-
-3. 性能考虑
+2. 性能考虑
    - 默认缩放比例0.5可根据需要调整
    - JPEG质量50在大多数场景下够用
    - 建议使用区域截图提升性能
+   - 避免频繁全屏截图
+
+3. 内存管理
+   - 及时释放不需要的图片对象
+   - 使用with语句处理图片文件
+   - 定期清理调试目录

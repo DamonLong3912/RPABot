@@ -1,4 +1,4 @@
-# OCRActions API
+# OCR动作 API
 
 ## 类定义
 
@@ -9,11 +9,11 @@ class OCRActions:
         """OCR相关动作处理类
         
         Args:
-            bot: BaseBot实例
+            bot: BaseBot实例，提供UI自动化和OCR能力
         """
 ```
 
-## 主要方法
+## 主要动作
 
 ### wait_and_click_ocr_text
 ```python
@@ -26,9 +26,15 @@ def wait_and_click_ocr_text(self, params: Dict[str, Any]) -> bool:
             timeout: 超时时间(秒)，默认30
             check_interval: 检查间隔(秒)，默认2
             screenshot_region: 截图区域[x1,y1,x2,y2]
+            click_offset: 点击偏移量[x,y]，默认[0,0]
             
     Returns:
         bool: 是否成功点击
+        
+    Notes:
+        - 使用UIAutomator2执行点击操作
+        - 支持坐标偏移
+        - 自动重试直到超时
     """
 ```
 
@@ -51,42 +57,61 @@ def handle_popups_until_target(self, params: Dict[str, Any]) -> bool:
             
     Returns:
         bool: 是否成功到达目标页面
+        
+    Notes:
+        - 支持多个弹窗规则
+        - 按优先级处理弹窗
+        - 自动重试直到目标出现或超时
     """
 ```
 
-## 内部方法
-
-### _click_ocr_result
+### wait_for_input_ready
 ```python
-def _click_ocr_result(self, result: Dict[str, Any], screenshot_region: List[int] = None) -> bool:
-    """点击OCR识别结果的中心位置
+def wait_for_input_ready(self, params: Dict[str, Any]) -> bool:
+    """等待输入框就绪
     
     Args:
-        result: OCR识别结果
-        screenshot_region: 截图区域[x1,y1,x2,y2]
-    
+        params:
+            timeout: 超时时间(秒)，默认5
+            check_interval: 检查间隔(秒)，默认0.5
+            
     Returns:
-        bool: 点击是否成功
+        bool: 输入框是否就绪
+        
+    Notes:
+        - 检查输入法状态
+        - 等待键盘显示
+        - 自动处理输入法切换
     """
 ```
 
-### _save_debug_info
+### input_text
 ```python
-def _save_debug_info(self, step_name: str, screenshot_path: str, 
-                    ocr_results: List[Dict], region: List[int] = None,
-                    debug_dir: str = None):
-    """保存调试信息
+def input_text(self, params: Dict[str, Any]) -> bool:
+    """输入文本
     
     Args:
-        step_name: 步骤名称
-        screenshot_path: 截图路径
-        ocr_results: OCR结果
-        region: 截图区域
-        debug_dir: 调试目录
+        params:
+            text: 要输入的文本
+            clear_first: 是否先清空，默认True
+            
+    Returns:
+        bool: 输入是否成功
+        
+    Notes:
+        - 使用UIAutomator2的send_keys方法
+        - 支持变量解析
+        - 失败时尝试adb输入
     """
 ```
 
 ## 调试支持
+
+### 调试信息
+- OCR识别结果可视化
+- 点击位置标注
+- 弹窗处理过程记录
+- 输入状态跟踪
 
 ### 调试目录结构
 ```
@@ -95,36 +120,43 @@ debug/
     └── {step_name}/
         ├── screenshot.png      # 原始截图
         ├── annotated.png      # 标注后的截图
-        └── ocr_results.yaml   # OCR结果
+        ├── ocr_results.yaml   # OCR结果
+        └── action_log.txt     # 动作执行日志
 ```
-
-### 调试信息
-- 原始截图保存
-- OCR结果可视化（带框和文字标注）
-- 坐标计算过程日志
-- 点击操作结果记录
 
 ## 使用示例
 
 ```yaml
 # 等待并点击文字
-- name: "等待并点击安装确认"
+- name: "等待并点击按钮"
   action: "wait_and_click_ocr_text"
   params:
-    text: "继续安装"
+    text: "开始使用"
     timeout: 30
-    screenshot_region: [50, 1600, 1030, 2400]
+    screenshot_region: [0, 1600, 1080, 2400]
+    click_offset: [0, 10]
 
 # 处理多个弹窗
 - name: "处理启动弹窗"
   action: "handle_popups_until_target"
   params:
-    target_text: "附近油站"
+    target_text: "首页"
     screenshot_region: [0, 0, 1080, 2400]
     popups:
       - name: "协议与规则"
         patterns: ["同意", "协议与规则"]
         action: "click_first"
         priority: 1
+      - name: "权限请求"
+        patterns: ["允许", "授权"]
+        action: "click_first"
+        priority: 2
+
+# 输入文本
+- name: "输入手机号"
+  action: "input_text"
+  params:
+    text: "${phone_number}"
+    clear_first: true
 ``` 
 </rewritten_file>

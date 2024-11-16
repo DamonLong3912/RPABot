@@ -5,13 +5,29 @@
 ### BaseBot
 ```python
 class BaseBot:
-    def __init__(self, debug=False):
+    def __init__(self, device_id: str = None, debug: bool = False):
         """初始化RPA基础机器人
         
         Args:
+            device_id: 设备ID，如果为None则使用当前连接的唯一设备
             debug: 是否启用调试模式
         """
 ```
+
+## 核心组件
+
+### UI自动化
+- ui_device: UIAutomator2设备实例，处理UI自动化操作
+- screenshot_helper: 基于UIAutomator2的截图工具
+- app_helper: 应用管理工具
+
+### OCR支持
+- ocr_helper: OCR识别工具
+- ocr_actions: OCR相关动作处理
+
+### 监控组件
+- network_monitor: 网络状态监控
+- logcat_monitor: 日志监控
 
 ## 主要方法
 
@@ -28,86 +44,92 @@ def run_flow(self, flow_config: Dict[str, Any]) -> None:
     """
 ```
 
-### _execute_step
+### execute_step
 ```python
-def _execute_step(self, step: Dict[str, Any]) -> None:
+def execute_step(self, step: Dict[str, Any]) -> Any:
     """执行单个流程步骤
     
     Args:
         step: 步骤配置字典
-    """
-```
-
-## 变量解析
-
-### _resolve_variable
-```python
-def _resolve_variable(self, value: str) -> str:
-    """解析配置中的变量引用
-    
-    Args:
-        value: 包含变量引用的字符串
         
     Returns:
-        str: 解析后的字符串
+        Any: 步骤执行结果
     """
 ```
 
-## 步骤结果管理
+## 变量管理
 
-### _save_step_result
+### set_variable
 ```python
-def _save_step_result(self, step_name: str, result: Any) -> None:
-    """保存步骤执行结果
+def set_variable(self, name: str, value: Any) -> None:
+    """设置变量值
     
     Args:
-        step_name: 步骤名称
-        result: 执行结果
+        name: 变量名
+        value: 变量值
     """
 ```
 
-### _get_step_result
+### get_variable
 ```python
-def _get_step_result(self, step_name: str) -> Any:
-    """获取步骤执行结果
+def get_variable(self, name: str, default: Any = None) -> Any:
+    """获取变量值
     
     Args:
-        step_name: 步骤名称
+        name: 变量名
+        default: 默认值
         
     Returns:
-        Any: 步骤结果
+        Any: 变量值
     """
 ```
 
-## 动作执行
+## UI操作
 
-### _execute_action
+### click
 ```python
-def _execute_action(self, action_type: str, params: Dict[str, Any]) -> Any:
-    """执行指定类型的动作
+def click(self, x: int, y: int) -> bool:
+    """点击指定坐标
     
     Args:
-        action_type: 动作类型
-        params: 动作参数
-        
+        x: x坐标
+        y: y坐标
+            
     Returns:
-        Any: 动作执行结果
-        
-    Raises:
-        ValueError: 未知的动作类型
+        bool: 点击是否成功
     """
 ```
 
-## 支持的动作类型
+### swipe
+```python
+def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, 
+          duration: float = 0.1) -> bool:
+    """滑动操作
+    
+    Args:
+        start_x: 起始x坐标
+        start_y: 起始y坐标
+        end_x: 结束x坐标
+        end_y: 结束y坐标
+        duration: 持续时间(秒)
+            
+    Returns:
+        bool: 滑动是否成功
+    """
+```
 
-1. 应用管理
-   - check_and_install_app: 检查并安装应用
-   - wait_for_app_installed: 等待应用安装完成
-   - start_app: 启动应用
-
-2. OCR相关
-   - wait_and_click_ocr_text: 等待并点击文字
-   - handle_popups_until_target: 处理弹窗直到目标出现
+### input_text
+```python
+def input_text(self, text: str) -> bool:
+    """输入文本
+    
+    Args:
+        text: 要输入的文本
+            
+    Returns:
+        bool: 输入是否成功
+    """
+```
 
 ## 调试支持
 
@@ -128,24 +150,38 @@ debug/
 - 记录详细执行日志
 - 保存OCR识别结果
 - 可视化标注截图
+- 网络请求监控
+- Logcat日志采集
 
 ## 使用示例
 
 ```python
-# 初始化
+# 初始化(自动连接设备)
 bot = BaseBot(debug=True)
 
-# 加载流程配置
+# 手动指定设备
+bot = BaseBot(device_id="device_id", debug=True)
+
+# UI操作
+bot.click(500, 800)
+bot.swipe(500, 1000, 500, 200)
+bot.input_text("测试文本")
+
+# 变量操作
+bot.set_variable("phone", "13800138000")
+phone = bot.get_variable("phone")
+
+# 加载并执行流程
 with open("flow.yaml", "r", encoding="utf-8") as f:
     flow_config = yaml.safe_load(f)
-
-# 执行流程
 bot.run_flow(flow_config)
 ```
 
 ## 环境变量
 
+- ANDROID_HOME: Android SDK路径
 - ASSETS_DIR: 资源文件目录
 - RPA_PROJECT_ROOT: 项目根目录
 - RPA_LOG_DIR: 日志目录
 - RPA_LOG_LEVEL: 日志级别
+- RPA_DEBUG: 是否启用调试模式

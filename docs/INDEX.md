@@ -15,7 +15,8 @@ rpa_framework/
 │   │       ├── ocr_actions.md         # OCR动作API
 │   │       ├── screenshot_helper.md    # 截图工具API
 │   │       ├── ocr_helper.md          # OCR工具API
-│   │       └── app_helper.md          # 应用管理API
+│   │       ├── app_helper.md          # 应用管理API
+│   │       ├── network_monitor.md     # 网络监控API
 │   ├── design/        # 设计文档
 │   │   ├── architecture.md    # 架构设计
 │   │   ├── actions.md         # 动作系统设计
@@ -27,16 +28,17 @@ rpa_framework/
 │   │   ├── actions/             # 动作实现
 │   │   │   ├── __init__.py     # 动作注册
 │   │   │   ├── base_action.py  # 动作基类
-│   │   │   ├── ui_actions.py   # UI动作
+│   │   │   ├── ui_actions.py   # UI动作(UIAutomator2实现)
 │   │   │   ├── ocr_actions.py  # OCR动作
 │   │   │   ├── data_actions.py # 数据动作
 │   │   │   ├── flow_actions.py # 流程控制动作
 │   │   │   └── app_actions.py  # 应用动作
+│   │   ├── network_monitor.py  # 网络监控
 │   │   └── base_bot.py        # RPA基础类
 │   ├── utils/        # 工具模块
 │   │   ├── logger.py           # 日志工具
 │   │   ├── ocr_helper.py      # OCR工具类
-│   │   ├── screenshot.py      # 截图工具类
+│   │   ├── screenshot.py      # 截图工具类(UIAutomator2实现)
 │   │   └── app_helper.py      # 应用管理工具类
 │   └── assets/       # 内置资源文件
 ├── flows/            # 流程配置文件
@@ -61,6 +63,7 @@ rpa_framework/
 - [截图工具 API](api/core/screenshot_helper.md) - 截图相关API
 - [OCR工具 API](api/core/ocr_helper.md) - OCR工具API
 - [应用管理 API](api/core/app_helper.md) - 应用管理API
+- [网络监控 API](api/core/network_monitor.md) - 网络监控API
 
 ### 需求文档
 - [需求概述](requirements/overview.md) - 项目需求概览
