@@ -167,10 +167,9 @@ class GetTextFromRegionAction(BaseAction):
     
     def execute(self, params: Dict[str, Any]) -> bool:
         save_to = params['save_to']
-        relative_to = params.get('relative_to')  # 相对于某个元素的位置
         element_pattern = params.get('element_pattern')  # 元素文本模式
         match_type = params.get('match_type')  # 匹配方式,不指定则尝试所有方式
-        timeout = params.get('timeout', 5)  # 默认10秒超时
+        timeout = params.get('timeout', 5)  # 默认5秒超时
         interval = params.get('interval', 0.5)  # 默认0.5秒检查间隔
         
         try:
@@ -208,76 +207,6 @@ class GetTextFromRegionAction(BaseAction):
                             
                             if text:  # 只在找到非空文本时返回
                                 self.logger.info(f"通过{selector_type}找到文本: {text}")
-                                self.bot.set_variable(save_to, text)
-                                return True
-
-                elif relative_to:
-                    # 获取参考元素的位置
-                    ref_element = self.bot.get_variable(relative_to)
-                    if not ref_element:
-                        self.logger.error(f"未找到参考元素变量: {relative_to}")
-                        time.sleep(interval)
-                        continue
-                    
-                    ref_bounds = ref_element['bounds']
-                    
-                    # 计算目标区域边界
-                    # 垂直方向优先使用绝对位置,没有则使用offset
-                    expected_top = params.get('top', ref_bounds['top'] + params.get('offset_top', 0))
-                    expected_bottom = params.get('bottom', ref_bounds['bottom'] + params.get('offset_bottom', 0))
-                    
-                    # 水平方向优先使用绝对位置,没有则使用offset
-                    expected_left = params.get('left', ref_bounds['left'] + params.get('offset_left', 0))
-                    expected_right = params.get('right', ref_bounds['right'] + params.get('offset_right', 0))
-                    self.logger.debug(f"参考元素边界: top={ref_bounds['top']}, bottom={ref_bounds['bottom']}, left={ref_bounds['left']}, right={ref_bounds['right']}")
-                    self.logger.debug(f"目标区域边界: top={expected_top}, bottom={expected_bottom}, left={expected_left}, right={expected_right}")
-                    
-                    # 获取所有可能的文本元素
-                    elements = []
-                    
-                    # 根据匹配方式获取元素
-                    if match_type:
-                        if 'description' in match_type:
-                            elements = self.ui_animator.xpath('//*//*[@content-desc]').all()
-                        else:
-                            elements = self.ui_animator.xpath('//*//*[@text]').all()
-                    else:
-                        # 获取所有可能的文本元素，包括嵌套元素
-                        elements = []
-                        elements.extend(self.ui_animator.xpath('//*//*[@text]').all())
-                        elements.extend(self.ui_animator.xpath('//*//*[@content-desc]').all())
-
-                    # 去重逻辑优化
-                    unique_elements = []
-                    seen_bounds = set()
-                    for element in elements:
-                        element_info = element.info
-                        bounds_str = str(element_info['bounds'])
-                        text = element_info.get('text', '') or element_info.get('contentDescription', '')
-                        # 使用边界和文本组合作为唯一标识
-                        unique_key = f"{bounds_str}_{text}"
-                        if unique_key not in seen_bounds:
-                            seen_bounds.add(unique_key)
-                            unique_elements.append(element)
-                    
-                    # 检查每个元素是否在目标区域内
-                    for element in unique_elements:
-                        element_info = element.info
-                        bounds = element_info['bounds']
-                        
-                        # 根据匹配方式获取文本
-                        if match_type and 'description' in match_type:
-                            text = element_info.get('contentDescription', '')
-                        else:
-                            text = element_info.get('text', '') or element_info.get('contentDescription', '')
-                        
-                        # 检查元素是否在目标区域内
-                        if (bounds['left'] >= expected_left and
-                            bounds['right'] <= expected_right and
-                            bounds['top'] >= expected_top and
-                            bounds['bottom'] <= expected_bottom):
-                            if text:  # 只处理有文本内容的元素
-                                self.logger.info(f"找到相对位置的文本: {text}")
                                 self.bot.set_variable(save_to, text)
                                 return True
 

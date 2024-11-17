@@ -134,7 +134,7 @@ steps:
               - name: "等待加载"
                 action: "sleep"
                 params:
-                  seconds: 1
+                  seconds: 1.5
 
               - name: "验证标题栏"
                 action: "verify_text_in_region"
@@ -188,28 +188,32 @@ steps:
                   contains_only: true
 
               - name: "获取加油站名称"
-                action: "get_text_from_region"
+                action: "get_node_by_path"
                 params:
-                  relative_to: "price_element"
-                  offset_top: -225
-                  offset_bottom: -90
-                  left: 50
-                  right: 900
+                  package: "com.didi.oil"
+                  index_path:
+                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0]
+                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
+                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
+                  attributes:
+                    - "content-desc"
+                  pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
                   save_to: "current_station_name"
-                  match_type: "description"
                   timeout: 3
                   interval: 0.3
 
               - name: "获取地址信息"
-                action: "get_text_from_region"
+                action: "get_node_by_path"
                 params:
-                  relative_to: "price_element"
-                  offset_top: -125
-                  offset_bottom: -50
-                  left: 50
-                  right: 1400
+                  package: "com.didi.oil"
+                  index_path:
+                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 1, 0]
+                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
+                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
+                  attributes:
+                    - "content-desc"
+                  pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
                   save_to: "address_info"
-                  match_type: "description"
                   timeout: 3
                   interval: 0.3
 

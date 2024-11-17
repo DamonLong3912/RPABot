@@ -248,7 +248,6 @@ class GetNodeByPathAction(BaseAction):
                         # 如果只请求了一个属性
                         if len(attributes) == 1:
                             value = current_node.get(attributes[0], "")
-                            
                             # 如果有pattern，检查是否匹配
                             if pattern:
                                 import re
