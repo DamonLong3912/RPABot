@@ -1,0 +1,69 @@
+name: "节点动作测试用例"
+version: "1.0"
+description: "测试节点相关动作"
+
+steps:
+  - name: "测试通过路径获取价格"
+    action: "get_node_by_path"
+    params:
+      package: "com.didi.oil"
+      index_path:
+        - [0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 2, 0, 0, 1]  # 第一个路径
+        - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]  # 备选路径
+      attributes:
+        - "content-desc"
+      pattern: "^\\d+\\.\\d{2}$"  # 匹配价格格式
+      save_to: "price_value"
+
+  - name: "测试无效的节点路径"
+    action: "get_node_by_path"
+    params:
+      package: "com.didi.oil"
+      index_path:
+        - [0, 0, 999, 1]  # 无效路径
+      attributes:
+        - "content-desc"
+      save_to: "invalid_value"
+
+  - name: "测试多属性获取"
+    action: "get_node_by_path"
+    params:
+      package: "com.didi.oil"
+      index_path:
+        - [0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 2, 0, 0, 1]
+      attributes:
+        - "content-desc"
+        - "text"
+        - "bounds"
+      save_to: "node_info"
+
+  - name: "测试获取油枪号"
+    action: "get_node_by_path"
+    params:
+      package: "com.didi.oil"
+      index_path:
+        - [0, 0, 1, 0, 0, 3, 0, 1, 1, 2, 0, 1, 0, 0, 0]  # 92#油枪
+      attributes:
+        - "content-desc"
+      pattern: "^\\d+#$"  # 匹配油枪号格式
+      save_to: "gun_number"
+
+  - name: "测试获取加油站名称"
+    action: "get_node_by_path"
+    params:
+      package: "com.didi.oil"
+      index_path:
+        - [0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 0, 0]
+      attributes:
+        - "content-desc"
+      save_to: "station_name"
+
+  - name: "测试获取加油站地址"
+    action: "get_node_by_path"
+    params:
+      package: "com.didi.oil"
+      index_path:
+        - [0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 1, 0]
+      attributes:
+        - "content-desc"
+      save_to: "station_address" 

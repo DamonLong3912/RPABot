@@ -33,7 +33,11 @@ from .app_actions import (
     StartAppAction,
     WaitForAppInstalledAction
 )
-from .node_actions import GetNodeDescendantsContentAction, WaitAndClickNodeAction
+from .node_actions import (
+    GetNodeDescendantsContentAction, 
+    WaitAndClickNodeAction,
+    GetNodeByPathAction
+)
 
 # 动作类型映射表
 ACTION_MAP = {
@@ -62,7 +66,8 @@ ACTION_MAP = {
     'wait_for_key_element': WaitForKeyElementAction,
     'get_node_descendants_content': GetNodeDescendantsContentAction,
     'wait_and_click_node': WaitAndClickNodeAction,
-    'get_list_item': GetListItemAction
+    'get_list_item': GetListItemAction,
+    'get_node_by_path': GetNodeByPathAction
 }
 
 def get_action_class(action_type: str) -> type:

@@ -140,7 +140,6 @@ class HandlePopupsUntilTargetAction(OCRBaseAction):
                             click_region = popup.get('click_region')
                             if click_region:
                                 # 添加调试信息
-                                self.logger.debug(f"准备点击区域: {click_region}")
                                 if self.bot.debug:
                                     self.save_debug_screenshot(
                                         step_name=f"click_region_{popup['name']}",
