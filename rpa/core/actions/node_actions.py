@@ -128,13 +128,14 @@ class WaitAndClickNodeAction(BaseAction):
                     - "contains": 包含匹配
                 timeout (int): 超时时间(秒)
                 interval (float): 检查间隔(秒)
+                save_to (str): 可选,保存执行结果到变量
         """
         locate_by = params.get("locate_by", "text")
         text = params.get("text", "")
         match_type = params.get("match_type", "exact")
         timeout = params.get("timeout", 10)
         interval = params.get("interval", 0.5)
-        
+        save_to = params.get("save_to")
         
         # 解析text中的变量引用
         if isinstance(text, str) and "${" in text:
@@ -144,6 +145,8 @@ class WaitAndClickNodeAction(BaseAction):
         # 检查text是否为None或空
         if not text:
             self.logger.error("text参数不能为空")
+            if save_to:
+                self.set_variable(save_to, False)
             return False
             
         end_time = time.time() + timeout
@@ -162,14 +165,18 @@ class WaitAndClickNodeAction(BaseAction):
                     
                     # 使用坐标点击而不是元素点击
                     self.ui_animator.click(center_x, center_y)
+                    if save_to:
+                        self.set_variable(save_to, True)
                     return True
                     
             except Exception as e:
                 self.logger.warning(f"点击元素时出错: {str(e)}")
                 
             time.sleep(interval)
-            
+
         self.logger.error(f"未能在 {timeout} 秒内找到并点击符合条件的元素: {text}")
+        if save_to:
+            self.set_variable(save_to, False)
         return False
     def _build_selector(self, locate_by: str, text: str, match_type: str) -> object:
         """构建元素选择器"""

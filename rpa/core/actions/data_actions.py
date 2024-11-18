@@ -153,22 +153,51 @@ class SetVariableAction(BaseAction):
     
     def execute(self, params: Dict[str, Any]) -> bool:
         try:
-            name = params['name']
-            value = params['value']
-            
-            # 如果值是变量引用,解析它
-            if isinstance(value, str) and "${" in value:
-                value = self.bot._resolve_variable(value)
+            # 支持单个变量设置
+            if "name" in params and "value" in params:
+                name = params["name"]
+                value = self._resolve_value(params["value"])
+                self.set_variable(name, value)
+                return True
                 
-            # 设置变量
-            self.bot.set_variable(name, value)
-            
-            self.logger.debug(f"设置变量 {name} = {value}")
-            return True
-            
+            # 支持批量设置变量
+            elif "variables" in params:
+                variables = params["variables"]
+                for name, value in variables.items():
+                    resolved_value = self._resolve_value(value)
+                    self.set_variable(name, resolved_value)
+                return True
+                
+            else:
+                raise ValueError("必须提供 name/value 或 variables 参数")
+                
         except Exception as e:
             self.logger.error(f"设置变量失败: {str(e)}")
             return False
+
+    def _resolve_value(self, value: Any) -> Any:
+        """解析变量值中的变量引用
+        
+        Args:
+            value: 要解析的值
+            
+        Returns:
+            解析后的值
+        """
+        # 处理字符串类型的变量引用
+        if isinstance(value, str) and "${" in value:
+            var_name = value[2:-1]  # 去掉 ${ 和 }
+            return self.get_variable(var_name)
+            
+        # 处理字典类型
+        elif isinstance(value, dict):
+            return {k: self._resolve_value(v) for k, v in value.items()}
+            
+        # 处理列表类型
+        elif isinstance(value, list):
+            return [self._resolve_value(item) for item in value]
+            
+        return value
 
 class GetVariableAction(BaseAction):
     """获取变量值"""

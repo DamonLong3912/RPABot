@@ -260,10 +260,13 @@ class BaseBot:
         # 处理单个condition
         condition = step.get('condition')
         if condition:
-            # 解析条件变量
-            condition_value = self.get_variable(condition.replace("${", "").replace("}", ""))
-            if not condition_value:
-                return False
+            if isinstance(condition, str) and "${" in condition:
+                # 解析条件变量
+                var_name = condition[2:-1]  # 去掉 ${ 和 }
+                condition_value = self.get_variable(var_name)
+                if not condition_value:
+                    self.logger.info(f"跳过步骤 {step.get('name', '')}: 条件不满足 ({var_name} = {condition_value})")
+                    return False
         
         # 处理conditions列表
         conditions = step.get('conditions', [])

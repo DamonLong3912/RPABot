@@ -109,6 +109,7 @@ steps:
       match_type: "exact"
       timeout: 3
       interval: 0.3
+      save_to: "click_95_success"
 
   - name: "获取95#油枪号列表"
     action: "get_node_descendants_content"
@@ -116,6 +117,7 @@ steps:
       bounds: [0, 1542, 1080, 2262]
       content_desc_pattern: "\\d+"
       save_to: "gun_numbers_95"
+    condition: "${click_95_success}"
 
   - name: "获取第一个95#油枪号"
     action: "get_list_item"
@@ -123,6 +125,7 @@ steps:
       list: "gun_numbers_95"
       index: 0
       save_to: "first_gun_95"
+    condition: "${click_95_success}"
 
   - name: "点击95#第一个油枪"
     action: "wait_and_click_node"
@@ -132,11 +135,14 @@ steps:
       match_type: "exact"
       timeout: 3
       interval: 0.3
+      save_to: "click_gun_95_success"
+    condition: "${click_95_success}"
 
   - name: "等待加载"
     action: "sleep"
     params:
       seconds: 0.5
+    condition: "${click_gun_95_success}"
 
   - name: "获取95#油站价"
     action: "get_text_from_region"
@@ -146,6 +152,7 @@ steps:
       save_to: "station_price_95"
       timeout: 3
       interval: 0.3
+    condition: "${click_gun_95_success}"
 
   - name: "获取95#指导价"
     action: "get_text_from_region"
@@ -155,6 +162,7 @@ steps:
       save_to: "guide_price_95"
       timeout: 3
       interval: 0.3
+    condition: "${click_gun_95_success}"
 
   - name: "获取95#滴滴价"
     action: "get_node_by_path"
@@ -171,3 +179,4 @@ steps:
       save_to: "didi_price_95"
       timeout: 3
       interval: 0.3
+    condition: "${click_gun_95_success}"
