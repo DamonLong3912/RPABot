@@ -74,76 +74,57 @@ class ExportDataAction(BaseAction):
     """导出数据到文件"""
     
     def execute(self, params: Dict[str, Any]) -> bool:
-        # 获取变量名并解析变量引用
-        data_var = params['data']
-        if isinstance(data_var, str) and "${" in data_var:
-            data = self.bot._resolve_variable(data_var)
-        else:
-            data = self.bot.get_variable(data_var)
-            
-        format_type = params.get('format', 'json')
-        filename = params['filename']
+        """导出数据
         
+        Args:
+            params:
+                data: 数据变量名
+                format: 导出格式(json)
+                filename: 输出文件名
+                mode: 导出模式(append)
+        """
         try:
+            data_var = params['data']
+            format = params.get('format', 'json')
+            filename = params['filename']
+            
+            # 获取要导出的数据
+            data = self.bot.get_variable(data_var)
+            if not data:
+                return True
+
             # 确保输出目录存在
-            output_path = Path(filename)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_dir = Path("output")
+            output_dir.mkdir(exist_ok=True)
             
-            # 记录导出的数据内容
-            self.logger.debug(f"准备导出数据: {data}")
-            
-            # 根据格式类型导出数据
-            if format_type == 'json':
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-                    
-            elif format_type == 'yaml':
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    yaml.dump(data, f, allow_unicode=True)
-                    
-            elif format_type == 'csv':
-                import csv
-                if not isinstance(data, list):
-                    raise ValueError("CSV格式只支持列表数据")
-                    
-                # 获取所有可能的字段
-                fields = set()
-                for item in data:
-                    if isinstance(item, dict):
-                        fields.update(item.keys())
-                fields = sorted(list(fields))
+            # 处理文件路径
+            file_path = output_dir / filename
+            # 确保父目录存在
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            if format == 'json':
+                existing_data = []
+                if file_path.exists():
+                    # 读取现有数据
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        try:
+                            existing_data = json.load(f)
+                        except json.JSONDecodeError:
+                            existing_data = []
                 
-                with open(output_path, 'w', encoding='utf-8', newline='') as f:
-                    writer = csv.DictWriter(f, fieldnames=fields)
-                    writer.writeheader()
-                    writer.writerows(data)
-                    
-            else:
-                raise ValueError(f"不支持的导出格式: {format_type}")
-                
-            self.logger.info(f"已导出 {len(data) if isinstance(data, list) else 1} 条记录到: {filename}")
-            
-            # 如果是调试模式,同时保存一份到调试目录
-            if self.bot.debug:
-                debug_path = self.bot.debug_dir / f"{self.bot.current_step_index:03d}_导出数据" / output_path.name
-                debug_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                if format_type == 'json':
-                    with open(debug_path, 'w', encoding='utf-8') as f:
-                        json.dump(data, f, ensure_ascii=False, indent=2)
-                elif format_type == 'yaml':
-                    with open(debug_path, 'w', encoding='utf-8') as f:
-                        yaml.dump(data, f, allow_unicode=True)
-                elif format_type == 'csv':
-                    with open(debug_path, 'w', encoding='utf-8', newline='') as f:
-                        writer = csv.DictWriter(f, fieldnames=fields)
-                        writer.writeheader()
-                        writer.writerows(data)
-                        
-                self.logger.debug(f"调试数据已保存到: {debug_path}")
-            
+                # 合并数据
+                if isinstance(data, list):
+                    existing_data.extend(data)
+                else:
+                    existing_data.append(data)
+
+                # 写入所有数据
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(existing_data, f, ensure_ascii=False, indent=2)
+
+            self.logger.info(f"已导出 {len(data) if isinstance(data, list) else 1} 条记录到 {file_path}")
             return True
-            
+
         except Exception as e:
             self.logger.error(f"导出数据失败: {str(e)}")
             return False

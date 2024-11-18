@@ -474,7 +474,29 @@ steps:
                         - type: "variable"
                           name: "is_new_station"
                           value: true
-                    
+
+                    - name: "导出增量数据"
+                      action: "export_data"
+                      params:
+                        data: "station_data"
+                        format: "json"
+                        filename: "outputs/gas_stations.json"
+                        mode: "append"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+
+                    - name: "清空临时数据"
+                      action: "set_variable"
+                      params:
+                        variables:
+                          station_data: []
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+
                     - name: "更新加油站历史"
                       action: "append_to_list"
                       params:
@@ -528,11 +550,4 @@ steps:
                 action: "sleep"
                 params:
                   seconds: 2
-
-  - name: "导出数据"
-    action: "export_data"
-    params:
-      data: "station_data"
-      format: "json"
-      filename: "gas_stations.json"
 
