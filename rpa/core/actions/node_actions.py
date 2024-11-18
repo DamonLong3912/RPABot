@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 from .base_action import BaseAction
 import time
 import re
@@ -292,3 +292,42 @@ class GetNodeByPathAction(BaseAction):
         except Exception as e:
             self.logger.error(f"通过路径获取节点值失败: {str(e)}")
             return {} if len(attributes) > 1 else ""
+
+class GetListItemBoundsAction(BaseAction):
+    """获取列表项的bounds"""
+    def execute(self, params: Dict[str, Any]) -> bool:
+        list_id = params['list_id']
+        save_to = params['save_to']
+        
+        try:
+            # 获取当前UI树
+            xml_content = self.ui_animator.dump_hierarchy()
+            root = ET.fromstring(xml_content)
+            
+            # 找到列表容器节点
+            list_nodes = root.findall(f".//*[@resource-id='{list_id}']")
+            if not list_nodes:
+                self.logger.error(f"未找到列表节点: {list_id}")
+                return False
+            
+            list_node = list_nodes[0]
+            
+            # 获取直接子节点
+            bounds_list = []
+            for child in list_node:
+                bounds = child.get('bounds')
+                if bounds:
+                    # 解析bounds字符串 "[x1,y1][x2,y2]"
+                    bounds_parts = bounds.strip('[]').split('][')
+                    x1, y1 = map(int, bounds_parts[0].split(','))
+                    x2, y2 = map(int, bounds_parts[1].split(','))
+                    bounds_list.append([x1, y1, x2, y2])
+            
+            # 保存结果
+            self.bot.set_variable(save_to, bounds_list)
+            self.logger.info(f"获取到 {len(bounds_list)} 个列表项bounds")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"获取列表项bounds失败: {str(e)}")
+            return False

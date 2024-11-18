@@ -270,31 +270,25 @@ class BaseBot:
         
         # 处理conditions列表
         conditions = step.get('conditions', [])
-        if conditions and not self._check_conditions(conditions):
-            return False
-        
-        return True
-
-    def _check_conditions(self, conditions: List[Dict[str, Any]]) -> bool:
-        """检查步骤执行条件"""
-        for condition in conditions:
-            if condition['type'] == 'step_result':
-                step_name = condition['step']
-                expected_value = condition['value']
-                step_result = self._get_step_result(step_name)
-                
-                # 如果期望值是字符串，直接查结果中是否包含键
-                if isinstance(expected_value, str):
-                    if isinstance(step_result, dict):
-                        if not step_result.get(expected_value, False):
-                            return False
-                    else:
-                        if step_result != expected_value:
-                            return False
-                # 否则进行相等性比较
-                else:
-                    if step_result != expected_value:
+        if conditions:
+            # 所有条件都必须满足
+            for condition in conditions:
+                condition_type = condition['type']
+                if condition_type == 'variable':
+                    var_name = condition['name']
+                    expected_value = condition['value']
+                    actual_value = self.get_variable(var_name)
+                    if actual_value != expected_value:
+                        self.logger.info(f"跳过步骤 {step.get('name', '')}: 条件不满足 ({var_name} = {actual_value}, 期望 = {expected_value})")
                         return False
+                elif condition_type == 'step_result':
+                    step_name = condition['step']
+                    expected_value = condition['value']
+                    step_result = self._get_step_result(step_name)
+                    if step_result != expected_value:
+                        self.logger.info(f"跳过步骤 {step.get('name', '')}: 条件不满足 ({step_name} = {step_result}, 期望 = {expected_value})")
+                        return False
+        
         return True
 
     def _save_step_result(self, step_name: str, result: Any) -> None:

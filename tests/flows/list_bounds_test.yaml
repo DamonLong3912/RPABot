@@ -1,0 +1,65 @@
+name: "列表bounds获取和循环点击测试"
+version: "1.0"
+description: "测试获取列表项bounds并循环点击的功能"
+
+variables:
+  max_scroll_times: 3
+
+steps:
+  - name: "等待搜索结果"
+    action: "sleep"
+    params:
+      seconds: 4
+
+  - name: "循环获取并点击列表项"
+    action: "loop"
+    params:
+      max_iterations: 100
+      steps:
+        - name: "获取加油站列表bounds"
+          action: "get_list_item_bounds"
+          params:
+            list_id: "com.didi.oil:id/rv_list"
+            save_to: "current_bounds_list"
+            timeout: 5
+            interval: 0.5
+
+        - name: "遍历点击当前页面bounds"
+          action: "for_each"
+          params:
+            list: "${current_bounds_list}"
+            variable: "current_bounds"
+            steps:
+              - name: "点击加油站"
+                action: "wait_and_click_region"
+                params:
+                  region: "${current_bounds}"
+
+              - name: "等待加载"
+                action: "sleep"
+                params:
+                  seconds: 1
+
+              - name: "返回列表页面"
+                action: "wait_and_click_region"
+                params:
+                  region: [20, 120, 100, 200]
+
+              - name: "等待返回"
+                action: "sleep"
+                params:
+                  seconds: 1
+
+        - name: "向上滑动"
+          action: "swipe"
+          params:
+            start_x: 540
+            start_y: 2150
+            end_x: 540
+            end_y: 250
+            duration: 0.5
+
+        - name: "等待列表刷新"
+          action: "sleep"
+          params:
+            seconds: 2 

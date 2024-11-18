@@ -123,54 +123,31 @@ steps:
         - name: "开始循环爬取"
           action: "loop"
           params:
-            max_iterations: 30
-            break_conditions:
-              - type: "step_result"
-                step: "检查重复加油站"
-                value: true
+            max_iterations: 10
             steps:
-              - name: "点击一个加油站"
-                action: "wait_and_click_region"
+              - name: "获取加油站列表bounds"
+                action: "get_list_item_bounds"
                 params:
-                  region: [0, 500, 1080, 700]
+                  list_id: "com.didi.oil:id/rv_list"
+                  save_to: "current_bounds_list"
+                  timeout: 5
+                  interval: 0.5
 
-              - name: "等待加载"
-                action: "sleep"
+              - name: "遍历点击当前页面bounds"
+                action: "for_each"
                 params:
-                  seconds: 1.5
-
-              - name: "验证标题栏"
-                action: "verify_text_in_region"
-                params:
-                  region: [400, 100, 680, 200]
-                  expected_text: "滴滴加油"
-                  match_type: "text"
-                  save_to: "title_verified"
-
-              - name: "动态调整滑动距离"
-                action: "loop"
-                params:
-                  max_iterations: 5
-                  break_conditions:
-                    - type: "variable"
-                      name: "title_verified"
-                      value: true
+                  list: "${current_bounds_list}"
+                  variable: "current_bounds"
                   steps:
-                    - name: "小幅滑动"
-                      action: "scroll"
-                      params:
-                        direction: "up"
-                        distance: 50
-
-                    - name: "再次点击加油站"
+                    - name: "点击加油站"
                       action: "wait_and_click_region"
                       params:
-                        region: [0, 500, 1080, 700]
-                        
+                        region: "${current_bounds}"
+
                     - name: "等待加载"
                       action: "sleep"
                       params:
-                        seconds: 1
+                        seconds: 1.5
 
                     - name: "验证标题栏"
                       action: "verify_text_in_region"
@@ -180,254 +157,377 @@ steps:
                         match_type: "text"
                         save_to: "title_verified"
 
-              - name: "等待并定位关键元素"
-                action: "wait_for_key_element"
-                params:
-                  text_pattern: "油站价¥"
-                  match_type: "description_contains"
-                  save_to: "price_element"
-                  timeout: 10
-                  interval: 0.4
-                  contains_only: true
+                    - name: "动态调整滑动距离"
+                      action: "loop"
+                      params:
+                        max_iterations: 10
+                        break_conditions:
+                          - type: "variable"
+                            name: "title_verified"
+                            value: true
+                        steps:
+                          - name: "小幅滑动"
+                            action: "scroll"
+                            params:
+                              direction: "up"
+                              distance: 50
+                              duration: 0.2
 
-              - name: "获取加油站名称"
-                action: "get_node_by_path"
-                params:
-                  package: "com.didi.oil"
-                  index_path:
-                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0]
-                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
-                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
-                  attributes:
-                    - "content-desc"
-                  pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
-                  save_to: "current_station_name"
-                  timeout: 3
-                  interval: 0.3
+                          - name: "再次点击加油站"
+                            action: "wait_and_click_region"
+                            params:
+                              region: "${current_bounds}"
+                              
+                          - name: "等待加载"
+                            action: "sleep"
+                            params:
+                              seconds: 1
 
-              - name: "获取地址信息"
-                action: "get_node_by_path"
-                params:
-                  package: "com.didi.oil"
-                  index_path:
-                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 1, 0]
-                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
-                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
-                  attributes:
-                    - "content-desc"
-                  pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
-                  save_to: "address_info"
-                  timeout: 3
-                  interval: 0.3
+                          - name: "验证标题栏"
+                            action: "verify_text_in_region"
+                            params:
+                              region: [400, 100, 680, 200]
+                              expected_text: "滴滴加油"
+                              match_type: "text"
+                              save_to: "title_verified"
 
-              - name: "获取92#油站价"
-                action: "get_text_from_region"
-                params:
-                  element_pattern: "油站价¥"
-                  match_type: "description_contains"
-                  save_to: "station_price_92"
-                  timeout: 3
-                  interval: 0.3
+                    - name: "等待并定位关键元素"
+                      action: "wait_for_key_element"
+                      params:
+                        text_pattern: "油站价¥"
+                        match_type: "description_contains"
+                        save_to: "price_element"
+                        timeout: 10
+                        interval: 0.4
+                        contains_only: true
 
-              - name: "获取92#指导价"
-                action: "get_text_from_region"
-                params:
-                  element_pattern: "指导价¥"
-                  match_type: "description_contains"
-                  save_to: "guide_price_92"
-                  timeout: 3
-                  interval: 0.3
+                    - name: "获取加油站名称"
+                      action: "get_node_by_path"
+                      params:
+                        package: "com.didi.oil"
+                        index_path:
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
+                        attributes:
+                          - "content-desc"
+                        pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
+                        save_to: "current_station_name"
+                        timeout: 3
+                        interval: 0.3
 
-              - name: "获取92#滴滴价"
-                action: "get_node_by_path"
-                params:
-                  package: "com.didi.oil"
-                  index_path:
-                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
-                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
-                    - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
-                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
-                  attributes:
-                    - "content-desc"
-                  pattern: "^\\d+\\.\\d{2}$"
-                  save_to: "didi_price_92"
-                  timeout: 3
-                  interval: 0.3
+                    - name: "检查是否为新加油站"
+                      action: "check_no_repeated_value"
+                      params:
+                        value: "${current_station_name}"
+                        list: "station_name_history"
+                        save_to: "is_new_station"
 
-              - name: "点击92#"
-                action: "wait_and_click_node"
-                params:
-                  locate_by: "description"
-                  text: "92#"
-                  match_type: "exact"
-                  timeout: 3
-                  interval: 0.3
-                  save_to: "click_92_success"
-              
-              - name: "等待列表刷新"
-                action: "sleep"
-                params:
-                  seconds: 1
-                condition: "${click_92_success}"
+                    - name: "获取地址信息"
+                      action: "get_node_by_path"
+                      params:
+                        package: "com.didi.oil"
+                        index_path:
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 1, 0]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
+                        attributes:
+                          - "content-desc"
+                        pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
+                        save_to: "address_info"
+                        timeout: 3
+                        interval: 0.3
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
 
-              - name: "获取92#油枪号列表"
-                action: "get_node_descendants_content"
-                params:
-                  bounds: [0, 1542, 1080, 2262]
-                  content_desc_pattern: "\\d+"
-                  save_to: "gun_numbers_92"
-                condition: "${click_92_success}"
+                    - name: "获取92#油站价"
+                      action: "get_text_from_region"
+                      params:
+                        element_pattern: "油站价¥"
+                        match_type: "description_contains"
+                        save_to: "station_price_92"
+                        timeout: 3
+                        interval: 0.3
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
 
-              - name: "点击95#"
-                action: "wait_and_click_node"
-                params:
-                  locate_by: "description"
-                  text: "95#"
-                  match_type: "exact"
-                  timeout: 2
-                  interval: 0.4
-                  save_to: "click_95_success"
+                    - name: "获取92#指导价"
+                      action: "get_text_from_region"
+                      params:
+                        element_pattern: "指导价¥"
+                        match_type: "description_contains"
+                        save_to: "guide_price_92"
+                        timeout: 3
+                        interval: 0.3
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
 
-              - name: "获取95#油枪号列表"
-                action: "get_node_descendants_content"
-                params:
-                  bounds: [0, 1542, 1080, 2262]
-                  content_desc_pattern: "\\d+"
-                  save_to: "gun_numbers_95"
-                condition: "${click_95_success}"
+                    - name: "获取92#滴滴价"
+                      action: "get_node_by_path"
+                      params:
+                        package: "com.didi.oil"
+                        index_path:
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+                          - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+                        attributes:
+                          - "content-desc"
+                        pattern: "^\\d+\\.\\d{2}$"
+                        save_to: "didi_price_92"
+                        timeout: 3
+                        interval: 0.3
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
 
-              - name: "获取第一个95#油枪号"
-                action: "get_list_item"
-                params:
-                  list: "gun_numbers_95"
-                  index: 0
-                  save_to: "first_gun_95"
-                condition: "${click_95_success}"
+                    - name: "点击92#"
+                      action: "wait_and_click_node"
+                      params:
+                        locate_by: "description"
+                        text: "92#"
+                        match_type: "exact"
+                        timeout: 3
+                        interval: 0.3
+                        save_to: "click_92_success"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                    
+                    - name: "等待列表刷新"
+                      action: "sleep"
+                      params:
+                        seconds: 1
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_92_success"
+                          value: true
 
-              - name: "点击95#第一个油枪"
-                action: "wait_and_click_node"
-                params:
-                  locate_by: "description"
-                  text: "${first_gun_95}"
-                  match_type: "exact"
-                  timeout: 3
-                  interval: 0.3
-                  save_to: "click_gun_95_success"
-                condition: "${click_95_success}"
+                    - name: "获取92#油枪号列表"
+                      action: "get_node_descendants_content"
+                      params:
+                        bounds: [0, 1542, 1080, 2262]
+                        content_desc_pattern: "\\d+"
+                        save_to: "gun_numbers_92"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_92_success"
+                          value: true
 
-              - name: "等待加载"
-                action: "sleep"
-                params:
-                  seconds: 0.5
-                condition: "${click_gun_95_success}"
+                    - name: "点击95#"
+                      action: "wait_and_click_node"
+                      params:
+                        locate_by: "description"
+                        text: "95#"
+                        match_type: "exact"
+                        timeout: 2
+                        interval: 0.4
+                        save_to: "click_95_success"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
 
-              - name: "获取95#油站价"
-                action: "get_text_from_region"
-                params:
-                  element_pattern: "油站价¥"
-                  match_type: "description_contains"
-                  save_to: "station_price_95"
-                  timeout: 3
-                  interval: 0.3
-                condition: "${click_gun_95_success}"
+                    - name: "获取95#油枪号列表"
+                      action: "get_node_descendants_content"
+                      params:
+                        bounds: [0, 1542, 1080, 2262]
+                        content_desc_pattern: "\\d+"
+                        save_to: "gun_numbers_95"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_95_success"
+                          value: true
 
-              - name: "获取95#指导价"
-                action: "get_text_from_region"
-                params:
-                  element_pattern: "指导价¥"
-                  match_type: "description_contains"
-                  save_to: "guide_price_95"
-                  timeout: 3
-                  interval: 0.3
-                condition: "${click_gun_95_success}"
+                    - name: "获取第一个95#油枪号"
+                      action: "get_list_item"
+                      params:
+                        list: "gun_numbers_95"
+                        index: 0
+                        save_to: "first_gun_95"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_95_success"
+                          value: true
 
-              - name: "获取95#滴滴价"
-                action: "get_node_by_path"
-                params:
-                  package: "com.didi.oil"
-                  index_path:
-                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
-                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
-                    - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
-                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
-                  attributes:
-                    - "content-desc"
-                  pattern: "^\\d+\\.\\d{2}$"
-                  save_to: "didi_price_95"
-                  timeout: 3
-                  interval: 0.3
-                condition: "${click_gun_95_success}"
+                    - name: "点击95#第一个油枪"
+                      action: "wait_and_click_node"
+                      params:
+                        locate_by: "description"
+                        text: "${first_gun_95}"
+                        match_type: "exact"
+                        timeout: 3
+                        interval: 0.3
+                        save_to: "click_gun_95_success"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_95_success"
+                          value: true
 
-              - name: "保存数据"
-                action: "append_to_list"
-                params:
-                  list: "station_data"
-                  data:
-                    name: "${current_station_name}"
-                    station_price_92: "${station_price_92}"
-                    guide_price_92: "${guide_price_92}"
-                    didi_price_92: "${didi_price_92}"
-                    station_price_95: "${station_price_95}"
-                    guide_price_95: "${guide_price_95}"
-                    didi_price_95: "${didi_price_95}"
-                    address: "${address_info}"
-                    search_key: "${current_location}"
-                    gun_numbers_92: "${gun_numbers_92}"
-                    gun_numbers_95: "${gun_numbers_95}"
+                    - name: "等待加载"
+                      action: "sleep"
+                      params:
+                        seconds: 0.5
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_gun_95_success"
+                          value: true
 
-              - name: "点击返回按钮"
-                action: "wait_and_click_region"
-                params:
-                  region: [20, 120, 100, 200]
+                    - name: "获取95#油站价"
+                      action: "get_text_from_region"
+                      params:
+                        element_pattern: "油站价¥"
+                        match_type: "description_contains"
+                        save_to: "station_price_95"
+                        timeout: 3
+                        interval: 0.3
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_gun_95_success"
+                          value: true
 
-              - name: "等待首页刷新"
-                action: "sleep"
-                params:
-                  seconds: 0.5
+                    - name: "获取95#指导价"
+                      action: "get_text_from_region"
+                      params:
+                        element_pattern: "指导价¥"
+                        match_type: "description_contains"
+                        save_to: "guide_price_95"
+                        timeout: 3
+                        interval: 0.3
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_gun_95_success"
+                          value: true
+
+                    - name: "获取95#滴滴价"
+                      action: "get_node_by_path"
+                      params:
+                        package: "com.didi.oil"
+                        index_path:
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+                          - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+                        attributes:
+                          - "content-desc"
+                        pattern: "^\\d+\\.\\d{2}$"
+                        save_to: "didi_price_95"
+                        timeout: 3
+                        interval: 0.3
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                        - type: "variable"
+                          name: "click_gun_95_success"
+                          value: true
+
+                    - name: "保存数据"
+                      action: "append_to_list"
+                      params:
+                        list: "station_data"
+                        data:
+                          name: "${current_station_name}"
+                          station_price_92: "${station_price_92}"
+                          guide_price_92: "${guide_price_92}"
+                          didi_price_92: "${didi_price_92}"
+                          station_price_95: "${station_price_95}"
+                          guide_price_95: "${guide_price_95}"
+                          didi_price_95: "${didi_price_95}"
+                          address: "${address_info}"
+                          search_key: "${current_location}"
+                          gun_numbers_92: "${gun_numbers_92}"
+                          gun_numbers_95: "${gun_numbers_95}"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+                    
+                    - name: "更新加油站历史"
+                      action: "append_to_list"
+                      params:
+                        list: "station_name_history"
+                        data: "${current_station_name}"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+
+                    - name: "重置循环变量"
+                      action: "set_variable"
+                      params:
+                        variables:
+                          click_92_success: false
+                          click_95_success: false
+                          click_gun_95_success: false
+                          station_price_92: ""
+                          guide_price_92: ""
+                          didi_price_92: ""
+                          station_price_95: ""
+                          guide_price_95: ""
+                          didi_price_95: ""
+                          gun_numbers_92: []
+                          gun_numbers_95: []
+                          first_gun_95: ""
+                          current_station_name: ""
+                          address_info: ""
+                          is_new_station: false
+
+                    - name: "点击返回按钮"
+                      action: "wait_and_click_region"
+                      params:
+                        region: [20, 120, 100, 200]
+
+                    - name: "等待返回"
+                      action: "sleep"
+                      params:
+                        seconds: 1
 
               - name: "向上滑动"
-                action: "scroll"
+                action: "swipe"
                 params:
-                  direction: "up"
-                  distance: "${variables.scroll_distance}"
+                  start_x: 540
+                  start_y: 2150
+                  end_x: 540
+                  end_y: 250
+                  duration: 0.5
 
               - name: "等待列表刷新"
                 action: "sleep"
                 params:
-                  seconds: 3
-
-              - name: "更新加油站历史"
-                action: "append_to_list"
-                params:
-                  list: "station_name_history"
-                  data: "${current_station_name}"
-                  max_length: 3
-
-              - name: "重置循环变量"
-                action: "set_variable"
-                params:
-                  variables:
-                    click_92_success: false
-                    click_95_success: false
-                    click_gun_95_success: false
-                    station_price_92: ""
-                    guide_price_92: ""
-                    didi_price_92: ""
-                    station_price_95: ""
-                    guide_price_95: ""
-                    didi_price_95: ""
-                    gun_numbers_92: []
-                    gun_numbers_95: []
-                    first_gun_95: ""
-                    current_station_name: ""
-                    address_info: ""
-
-              - name: "检查重复加油站"
-                action: "check_repeated_value"
-                params:
-                  list: "station_name_history"
-                  min_length: 3
-                  save_to: "reached_bottom"
+                  seconds: 2
 
   - name: "导出数据"
     action: "export_data"

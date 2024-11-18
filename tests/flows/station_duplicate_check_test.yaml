@@ -1,0 +1,102 @@
+name: "加油站重复检查测试"
+version: "1.0"
+description: "测试加油站名称重复检查功能"
+
+variables:
+  visited_station_names: []
+  test_bounds_list: []
+  test_station_data: []
+
+steps:
+  - name: "等待搜索结果"
+    action: "sleep"
+    params:
+      seconds: 4
+
+  - name: "循环获取并检查列表项"
+    action: "loop"
+    params:
+      max_iterations: 10
+      steps:
+        - name: "获取加油站列表bounds"
+          action: "get_list_item_bounds"
+          params:
+            list_id: "com.didi.oil:id/rv_list"
+            save_to: "test_bounds_list"
+            timeout: 5
+            interval: 0.5
+
+        - name: "遍历检查当前页面加油站"
+          action: "for_each"
+          params:
+            list: "${test_bounds_list}"
+            variable: "current_bounds"
+            steps:
+              - name: "点击加油站"
+                action: "wait_and_click_region"
+                params:
+                  region: "${current_bounds}"
+
+              - name: "等待加载"
+                action: "sleep"
+                params:
+                  seconds: 3
+
+              - name: "获取加油站名称"
+                action: "get_node_by_path"
+                params:
+                  package: "com.didi.oil"
+                  index_path:
+                    - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0]
+                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
+                    - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
+                  attributes:
+                    - "content-desc"
+                  pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
+                  save_to: "current_station_name"
+                  timeout: 3
+                  interval: 0.3
+
+              - name: "检查是否为新加油站"
+                action: "check_no_repeated_value"
+                params:
+                  value: "${current_station_name}"
+                  list: "visited_station_names"
+                  save_to: "is_new_station"
+
+              - name: "记录已访问加油站"
+                action: "append_to_list"
+                params:
+                  list: "visited_station_names"
+                  data: "${current_station_name}"
+                conditions:
+                  - type: "variable"
+                    name: "is_new_station"
+                    value: true
+
+              - name: "保存数据"
+                action: "append_to_list"
+                params:
+                  list: "test_station_data"
+                  data: "${current_station_name}"
+                conditions:
+                  - type: "variable"
+                    name: "is_new_station"
+                    value: true
+
+              - name: "重置循环变量"
+                action: "set_variable"
+                params:
+                  variables:
+                    current_station_name: ""
+                    is_new_station: false
+
+              - name: "点击返回按钮"
+                action: "wait_and_click_region"
+                params:
+                  region: [20, 120, 100, 200]
+
+              - name: "等待返回"
+                action: "sleep"
+                params:
+                  seconds: 1

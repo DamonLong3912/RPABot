@@ -90,15 +90,26 @@ class ForEachAction(BaseAction):
             variable_name = params['variable']
             steps = params.get('steps', [])
             
-            # 获取列表数据并转换
-            items = self.bot._resolve_variable(list_param)
-            if isinstance(items, str):
+            # 如果是字符串且包含变量引用，则获取变量值
+            if isinstance(list_param, str):
+                if list_param.startswith('${'):
+                    var_name = list_param.strip('${}')
+                    items = self.bot.get_variable(var_name)
+                else:
+                    # 尝试解析字符串为列表
+                    try:
+                        import ast
+                        items = ast.literal_eval(list_param)
+                    except:
+                        raise ValueError(f"无法解析列表字符串: {list_param}")
+            else:
+                # 检查是否可以转换为列表
                 try:
-                    items = ast.literal_eval(items)
+                    items = list(list_param)
                 except:
-                    self.logger.error(f"无法解析列表字符串: {items}")
-                    return False
+                    raise ValueError(f"参数无法转换为列表: {list_param}")
             
+            # 确保是列表类型
             if not isinstance(items, list):
                 raise ValueError(f"参数 {list_param} 必须是列表类型，当前类型: {type(items)}")
             
@@ -112,7 +123,6 @@ class ForEachAction(BaseAction):
                 
                 # 执行步骤
                 for step in steps:
-                    # 使用 _execute_step 替代直接调用 _execute_action
                     self.bot._execute_step(step)
             
             self.logger.info("列表遍历完成")
@@ -122,40 +132,47 @@ class ForEachAction(BaseAction):
             self.logger.error(f"ForEach循环执行失败: {str(e)}")
             return False
 
-class CheckRepeatedValueAction(BaseAction):
-    """检查列表中的值是否全部相同"""
+class CheckNoRepeatedValueAction(BaseAction):
+    """检查值是否不在列表中存在（用于判断是否为新值）"""
     
     def execute(self, params: Dict[str, Any]) -> bool:
         try:
             # 获取参数
-            list_param = params['list']
-            min_length = params.get('min_length', 1)
-            save_to = params.get('save_to')
+            value = params.get('value')  # 要检查的值
+            list_param = params['list']  # 列表名称
+            save_to = params.get('save_to')  # 保存结果的变量名
+            
+            # 解析value中的变量引用
+            if isinstance(value, str) and "${" in value:
+                var_name = value[2:-1]  # 去掉 ${ 和 }
+                value = self.bot.get_variable(var_name)
             
             # 获取列表数据
             items = self.bot.get_variable(list_param)
-            self.logger.info(f"检查列表内容: {list_param} = {items}")
+            if items is None:
+                items = []  # 如果列表不存在，初始化为空列表
+                self.bot.set_variable(list_param, items)
+            
+            self.logger.info(f"检查值 '{value}' 是否不在列表 {list_param} 中")
+            
             if not isinstance(items, list):
                 self.logger.error(f"参数必须是列表类型，当前类型: {type(items)}")
                 return False
                 
-            # 如果列表长度小于要求的最小长度，返回False
-            if len(items) < min_length:
-                result = False
-            else:
-                # 检查最近min_length个元素是否相同
-                recent_items = items[-min_length:]
-                result = all(x == recent_items[0] for x in recent_items)
+            # 检查值是否不在列表中
+            result = value not in items
             
             # 保存结果到变量
             if save_to:
                 self.bot.set_variable(save_to, result)
             
             if result:
-                self.logger.info(f"检测到连续{min_length}次重复值: {items[-1]}")
+                self.logger.info(f"值 '{value}' 在列表中不存在（新值）")
+            else:
+                self.logger.info(f"值 '{value}' 在列表中已存在（重复值）")
             
             return result
             
         except Exception as e:
-            self.logger.error(f"检查重复值失败: {str(e)}")
+            self.logger.error(f"检查值是否不存在失败: {str(e)}")
             return False
