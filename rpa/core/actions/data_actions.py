@@ -3,6 +3,7 @@ from .base_action import BaseAction
 import json
 import yaml
 from pathlib import Path
+from datetime import datetime
 
 class AppendToListAction(BaseAction):
     """向列表追加数据"""
@@ -80,12 +81,14 @@ class ExportDataAction(BaseAction):
             params:
                 data: 数据变量名
                 format: 导出格式(json)
-                filename: 输出文件名
+                filepath: 输出目录路径
+                filename: 文件名(支持变量引用)
                 mode: 导出模式(append)
         """
         try:
             data_var = params['data']
             format = params.get('format', 'json')
+            filepath = params['filepath']
             filename = params['filename']
             
             # 获取要导出的数据
@@ -93,14 +96,20 @@ class ExportDataAction(BaseAction):
             if not data:
                 return True
 
+            # 解析文件名中的变量引用
+            if "${" in filename:
+                var_name = filename[filename.index("${") + 2:filename.index("}")]
+                var_value = self.bot.get_variable(var_name)
+                if var_value is None:
+                    raise ValueError(f"变量 {var_name} 未定义")
+                filename = filename.replace("${" + var_name + "}", str(var_value))
+            
             # 确保输出目录存在
-            output_dir = Path("output")
-            output_dir.mkdir(exist_ok=True)
+            output_dir = Path(filepath)
+            output_dir.mkdir(parents=True, exist_ok=True)
             
             # 处理文件路径
             file_path = output_dir / filename
-            # 确保父目录存在
-            file_path.parent.mkdir(parents=True, exist_ok=True)
 
             if format == 'json':
                 existing_data = []
@@ -110,6 +119,7 @@ class ExportDataAction(BaseAction):
                         try:
                             existing_data = json.load(f)
                         except json.JSONDecodeError:
+                            self.logger.warning(f"文件 {file_path} 内容无效，将重新创建")
                             existing_data = []
                 
                 # 合并数据
@@ -225,4 +235,24 @@ class GetListItemAction(BaseAction):
             
         except Exception as e:
             self.logger.error(f"获取列表项失败: {str(e)}")
+            return False 
+
+class SetTimestampAction(BaseAction):
+    """设置时间戳变量"""
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        try:
+            save_to = params['save_to']
+            format = params.get('format', '%Y%m%d_%H%M%S')
+            
+            # 生成时间戳
+            timestamp = datetime.now().strftime(format)
+            
+            # 保存到变量
+            self.bot.set_variable(save_to, timestamp)
+            self.logger.info(f"设置时间戳: {timestamp}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"设置时间戳失败: {str(e)}")
             return False 

@@ -6,15 +6,16 @@ variables:
   scroll_distance: 300
   station_data: []
   station_name_history: []
+  timestamp: ""
   search_locations: [
-    "广东省广州市白云区石门街道联滘路高埔工业区",
-    "广东省广州市黄埔区水西街崑山祖祠",
+    # "广东省广州市白云区石门街道联滘路高埔工业区",
+    # "广东省广州市黄埔区水西街崑山祖祠",
     "广东省广州市增城区石滩镇人民政府",
-    "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
-    "广东省广州市从化区太平镇刘宅",
-    "广东省广州市增城区派潭镇磨刀坑",
-    "广东省广州市从化区良口镇长明街",
-    "广东省广州市从化区吕田镇鱼洞村"
+    # "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
+    # "广东省广州市从化区太平镇刘宅",
+    # "广东省广州市增城区派潭镇磨刀坑",
+    # "广东省广州市从化区良口镇长明街",
+    # "广东省广州市从化区吕田镇鱼洞村"
   ]
 
 prerequisites:
@@ -22,6 +23,12 @@ prerequisites:
     package: "com.didi.oil"
 
 steps:
+  - name: "设置时间戳"
+    action: "set_timestamp"
+    params:
+      save_to: "timestamp"
+      format: "%Y%m%d_%H%M%S"
+
   - name: "启动应用"
     action: "start_app"
     params:
@@ -123,8 +130,18 @@ steps:
         - name: "开始循环爬取"
           action: "loop"
           params:
-            max_iterations: 10
+            max_iterations: 50
+            break_conditions:
+              - type: "variable"
+                name: "has_new_stations"
+                value: false
             steps:
+              - name: "重置新增站点标记"
+                action: "set_variable"
+                params:
+                  variables:
+                    has_new_stations: false
+
               - name: "获取加油站列表bounds"
                 action: "get_list_item_bounds"
                 params:
@@ -201,6 +218,11 @@ steps:
                         interval: 0.4
                         contains_only: true
 
+                    - name: "等待加载"
+                      action: "sleep"
+                      params:
+                        seconds: 0.2
+
                     - name: "获取加油站名称"
                       action: "get_node_by_path"
                       params:
@@ -209,6 +231,7 @@ steps:
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 0, 0]
                         attributes:
                           - "content-desc"
                         pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
@@ -231,6 +254,7 @@ steps:
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 1, 0]
                         attributes:
                           - "content-desc"
                         pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
@@ -273,10 +297,12 @@ steps:
                       params:
                         package: "com.didi.oil"
                         index_path:
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
                           - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 2, 0, 0, 1]
                         attributes:
                           - "content-desc"
                         pattern: "^\\d+\\.\\d{2}$"
@@ -390,7 +416,7 @@ steps:
                     - name: "等待加载"
                       action: "sleep"
                       params:
-                        seconds: 0.5
+                        seconds: 1.0
                       conditions:
                         - type: "variable"
                           name: "is_new_station"
@@ -436,10 +462,16 @@ steps:
                       params:
                         package: "com.didi.oil"
                         index_path:
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 2, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 3, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
                           - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 2, 0, 0, 1]
                         attributes:
                           - "content-desc"
                         pattern: "^\\d+\\.\\d{2}$"
@@ -452,6 +484,16 @@ steps:
                           value: true
                         - type: "variable"
                           name: "click_gun_95_success"
+                          value: true
+
+                    - name: "更新新增站点标记"
+                      action: "set_variable"
+                      params:
+                        variables:
+                          has_new_stations: true
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
                           value: true
 
                     - name: "保存数据"
@@ -480,7 +522,8 @@ steps:
                       params:
                         data: "station_data"
                         format: "json"
-                        filename: "outputs/gas_stations.json"
+                        filepath: "outputs"
+                        filename: "gas_stations_${timestamp}.json"
                         mode: "append"
                       conditions:
                         - type: "variable"

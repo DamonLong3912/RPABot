@@ -128,6 +128,7 @@ class WaitAndClickNodeAction(BaseAction):
                     - "contains": 包含匹配
                 timeout (int): 超时时间(秒)
                 interval (float): 检查间隔(秒)
+                bounds (List[int], optional): 优先区域范围 [left, top, right, bottom]
                 save_to (str): 可选,保存执行结果到变量
         """
         locate_by = params.get("locate_by", "text")
@@ -135,6 +136,7 @@ class WaitAndClickNodeAction(BaseAction):
         match_type = params.get("match_type", "exact")
         timeout = params.get("timeout", 10)
         interval = params.get("interval", 0.5)
+        bounds = params.get("bounds")
         save_to = params.get("save_to")
         
         # 解析text中的变量引用
@@ -158,12 +160,65 @@ class WaitAndClickNodeAction(BaseAction):
                 
                 # 检查元素是否存在
                 if selector.exists:
-                    # 获取元素中心点坐标并点击
-                    bounds = selector.info.get('bounds', {})
-                    center_x = (bounds.get('left', 0) + bounds.get('right', 0)) // 2
-                    center_y = (bounds.get('top', 0) + bounds.get('bottom', 0)) // 2
+                    # 获取元素信息
+                    element_info = selector.info
+                    if not element_info or 'bounds' not in element_info:
+                        self.logger.warning("无法获取元素bounds信息")
+                        time.sleep(interval)
+                        continue
+                        
+                    element_bounds = element_info['bounds']
                     
-                    # 使用坐标点击而不是元素点击
+                    # 如果指定了bounds，检查元素是否在bounds内
+                    if bounds:
+                        if not self._check_node_in_bounds(element_bounds, bounds):
+                            # 如果不在指定区域内，尝试查找下一个匹配元素
+                            xml_content = self.ui_animator.dump_hierarchy()
+                            root = ET.fromstring(xml_content)
+                            
+                            # 根据定位方式构建xpath
+                            if locate_by == "text":
+                                xpath = f".//*[@text='{text}']" if match_type == "exact" else f".//*[contains(@text,'{text}')]"
+                            elif locate_by == "description":
+                                xpath = f".//*[@content-desc='{text}']" if match_type == "exact" else f".//*[contains(@content-desc,'{text}')]"
+                            else:
+                                raise ValueError(f"不支持的定位方式: {locate_by}")
+                            
+                            # 查找所有匹配的元素
+                            matching_elements = root.findall(xpath)
+                            
+                            # 遍历找到第一个在bounds内的元素
+                            for element in matching_elements:
+                                bounds_str = element.get('bounds', '')
+                                if not bounds_str:
+                                    continue
+                                    
+                                try:
+                                    bounds_parts = bounds_str.strip('[]').split('][')
+                                    x1, y1 = map(int, bounds_parts[0].split(','))
+                                    x2, y2 = map(int, bounds_parts[1].split(','))
+                                    node_bounds = {
+                                        'left': x1,
+                                        'top': y1,
+                                        'right': x2,
+                                        'bottom': y2
+                                    }
+                                    
+                                    if self._check_node_in_bounds(node_bounds, bounds):
+                                        element_bounds = node_bounds
+                                        break
+                                except:
+                                    continue
+                            else:
+                                # 没找到在bounds内的元素，继续等待
+                                time.sleep(interval)
+                                continue
+                    
+                    # 计算点击坐标
+                    center_x = (element_bounds['left'] + element_bounds['right']) // 2
+                    center_y = (element_bounds['top'] + element_bounds['bottom']) // 2
+                    
+                    # 执行点击
                     self.ui_animator.click(center_x, center_y)
                     if save_to:
                         self.set_variable(save_to, True)
@@ -178,6 +233,17 @@ class WaitAndClickNodeAction(BaseAction):
         if save_to:
             self.set_variable(save_to, False)
         return False
+
+    def _check_node_in_bounds(self, node_bounds: Dict, target_bounds: List[int]) -> bool:
+        """检查节点是否在指定区域内"""
+        try:
+            return (node_bounds['left'] >= target_bounds[0] and
+                    node_bounds['top'] >= target_bounds[1] and 
+                    node_bounds['right'] <= target_bounds[2] and
+                    node_bounds['bottom'] <= target_bounds[3])
+        except:
+            return False
+
     def _build_selector(self, locate_by: str, text: str, match_type: str) -> object:
         """构建元素选择器"""
         if locate_by == "text":

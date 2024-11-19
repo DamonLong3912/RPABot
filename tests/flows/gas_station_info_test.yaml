@@ -24,6 +24,7 @@ steps:
         - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0]
         - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
         - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
+        - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 0, 0]
       attributes:
         - "content-desc"
       pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
@@ -39,6 +40,7 @@ steps:
         - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 1, 0]
         - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
         - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
+        - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 1, 0]
       attributes:
         - "content-desc"
       pattern: "^(?!\\d+([.:]\\d+)*$)[^\\s]+$"
@@ -69,10 +71,12 @@ steps:
     params:
       package: "com.didi.oil"
       index_path:
+        - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
         - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
         - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
         - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
         - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+        - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 2, 0, 0, 1]
       attributes:
         - "content-desc"
       pattern: "^\\d+\\.\\d{2}$"
@@ -135,13 +139,14 @@ steps:
       match_type: "exact"
       timeout: 3
       interval: 0.3
+      bounds: [0, 1542, 1080, 2262]
       save_to: "click_gun_95_success"
     condition: "${click_95_success}"
 
   - name: "等待加载"
     action: "sleep"
     params:
-      seconds: 0.5
+      seconds: 1.0
     condition: "${click_gun_95_success}"
 
   - name: "获取95#油站价"
@@ -169,10 +174,16 @@ steps:
     params:
       package: "com.didi.oil"
       index_path:
+        - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
         - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+        - [0, 0, 0, 1, 0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+        - [0, 0, 0, 1, 0, 0, 2, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+        - [0, 0, 0, 1, 0, 0, 3, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+        - [0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
         - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
         - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
         - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
+        - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 2, 0, 0, 1]
       attributes:
         - "content-desc"
       pattern: "^\\d+\\.\\d{2}$"
@@ -180,3 +191,20 @@ steps:
       timeout: 3
       interval: 0.3
     condition: "${click_gun_95_success}"
+  
+  - name: "保存数据"
+    action: "append_to_list"
+    params:
+      list: "station_data"
+      data:
+        name: "${current_station_name}"
+        station_price_92: "${station_price_92}"
+        guide_price_92: "${guide_price_92}"
+        didi_price_92: "${didi_price_92}"
+        station_price_95: "${station_price_95}"
+        guide_price_95: "${guide_price_95}"
+        didi_price_95: "${didi_price_95}"
+        address: "${address_info}"
+        search_key: "${current_location}"
+        gun_numbers_92: "${gun_numbers_92}"
+        gun_numbers_95: "${gun_numbers_95}"
