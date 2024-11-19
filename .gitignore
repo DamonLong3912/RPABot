@@ -59,9 +59,14 @@ debug/
 
 # outputs
 outputs/
+*.xlsx
+
+# scripts
+scripts/
 
 # dumps
 dumps/
+hierarchy_dumps/
 
 # config
 config.yaml

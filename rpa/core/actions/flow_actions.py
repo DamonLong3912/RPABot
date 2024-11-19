@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from .base_action import BaseAction
 import time
 import ast
@@ -40,6 +40,18 @@ class LoopAction(BaseAction):
             # 执行步骤
             for step in steps:
                 self.bot._execute_step(step)
+                
+                # 检查是否需要中断循环
+                if self.bot.get_variable('_break_current_loop', False):
+                    self.bot.set_variable('_break_current_loop', False)  # 重置标记
+                    self.logger.info("检测到中断信号，提前结束循环")
+                    return True
+                    
+                # 检查是否需要继续下一次循环
+                if self.bot.get_variable('_continue_current_loop', False):
+                    self.bot.set_variable('_continue_current_loop', False)  # 重置标记
+                    self.logger.info("检测到继续信号，跳过剩余步骤")
+                    break
             
             # 检查退出条件
             if self._check_any_condition(break_conditions):
@@ -79,6 +91,18 @@ class LoopAction(BaseAction):
                     return True
         
         return False
+
+class BreakLoopAction(BaseAction):
+    """中断当前循环的动作"""
+    
+    def execute(self, params: Optional[Dict[str, Any]] = None) -> bool:
+        """执行中断循环动作
+        
+        Returns:
+            bool: 始终返回True以表示成功执行
+        """
+        self.bot.set_variable('_break_current_loop', True)
+        return True
 
 class ForEachAction(BaseAction):
     """循环遍历列表中的每个元素"""
@@ -124,6 +148,18 @@ class ForEachAction(BaseAction):
                 # 执行步骤
                 for step in steps:
                     self.bot._execute_step(step)
+                    
+                    # 检查是否需要中断循环
+                    if self.bot.get_variable('_break_current_loop', False):
+                        self.bot.set_variable('_break_current_loop', False)  # 重置标记
+                        self.logger.info("检测到中断信号，提前结束循环")
+                        return True
+                        
+                    # 检查是否需要继续下一次循环
+                    if self.bot.get_variable('_continue_current_loop', False):
+                        self.bot.set_variable('_continue_current_loop', False)  # 重置标记
+                        self.logger.info("检测到继续信号，跳过剩余步骤")
+                        break
             
             self.logger.info("列表遍历完成")
             return True
@@ -176,3 +212,15 @@ class CheckNoRepeatedValueAction(BaseAction):
         except Exception as e:
             self.logger.error(f"检查值是否不存在失败: {str(e)}")
             return False
+
+class ContinueLoopAction(BaseAction):
+    """继续当前循环的动作"""
+    
+    def execute(self, params: Optional[Dict[str, Any]] = None) -> bool:
+        """执行继续循环动作
+        
+        Returns:
+            bool: 始终返回True以表示成功执行
+        """
+        self.bot.set_variable('_continue_current_loop', True)
+        return True

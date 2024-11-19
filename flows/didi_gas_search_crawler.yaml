@@ -8,9 +8,9 @@ variables:
   station_name_history: []
   timestamp: ""
   search_locations: [
-    # "广东省广州市白云区石门街道联滘路高埔工业区",
+    "广东省广州市白云区石门街道联滘路高埔工业区",
     # "广东省广州市黄埔区水西街崑山祖祠",
-    "广东省广州市增城区石滩镇人民政府",
+    # "广东省广州市增城区石滩镇人民政府",
     # "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
     # "广东省广州市从化区太平镇刘宅",
     # "广东省广州市增城区派潭镇磨刀坑",
@@ -174,6 +174,30 @@ steps:
                         match_type: "text"
                         save_to: "title_verified"
 
+                    - name: "验证标题栏"
+                      action: "verify_text_in_region"
+                      params:
+                        region: [400, 90, 680, 230]
+                        expected_text: "协议与规则"
+                        match_type: "text"
+                        save_to: "agreetment_verified"
+
+                    - name: "点击返回按钮"
+                      action: "wait_and_click_region"
+                      params:
+                        region: [20, 120, 100, 200]
+                      conditions:
+                        - type: "variable"
+                          name: "agreetment_verified"
+                          value: true
+                    
+                    - name: "检查标题验证状态并中断"
+                      action: "break_loop"
+                      conditions:
+                        - type: "variable"
+                          name: "agreetment_verified"
+                          value: true
+
                     - name: "动态调整滑动距离"
                       action: "loop"
                       params:
@@ -208,6 +232,13 @@ steps:
                               match_type: "text"
                               save_to: "title_verified"
 
+                    - name: "检查标题验证状态并跳过"
+                      action: "continue_loop"
+                      conditions:
+                        - type: "variable"
+                          name: "title_verified"
+                          value: false
+
                     - name: "等待并定位关键元素"
                       action: "wait_for_key_element"
                       params:
@@ -230,7 +261,9 @@ steps:
                         index_path:
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 0, 0]
                         attributes:
                           - "content-desc"
@@ -253,7 +286,9 @@ steps:
                         index_path:
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 1, 0]
                         attributes:
                           - "content-desc"

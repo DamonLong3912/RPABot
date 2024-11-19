@@ -1,71 +1,132 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import uiautomator2 as u2
-import argparse
-import json
-import xml.dom.minidom
+import sys
 import os
+import subprocess
+import json
 from datetime import datetime
+import xml.dom.minidom
+import xml.etree.ElementTree as ET
 
-def dump_hierarchy(output_dir="dumps", format="xml"):
+def get_connected_devices():
+    """获取所有已连接的设备"""
+    result = subprocess.run(['adb', 'devices'], capture_output=True, text=True)
+    lines = result.stdout.strip().split('\n')[1:]  # 跳过第一行的"List of devices attached"
+    devices = []
+    for line in lines:
+        if line.strip():
+            serial = line.split()[0]
+            devices.append(serial)
+    return devices
+
+def format_xml(xml_content: str) -> str:
+    """格式化XML内容，使其更易读"""
+    try:
+        # 解析XML
+        dom = xml.dom.minidom.parseString(xml_content)
+        # 格式化输出，每行缩进2个空格
+        formatted_xml = dom.toprettyxml(indent='  ')
+        # 移除空行
+        formatted_xml = '\n'.join([line for line in formatted_xml.split('\n') if line.strip()])
+        return formatted_xml
+    except Exception as e:
+        print(f"格式化XML时出错: {str(e)}")
+        return xml_content
+
+def dump_hierarchy(device_serial=None):
     """
-    导出当前设备的UI层级结构
+    导出当前界面的UI层级
     
     Args:
-        output_dir: 输出目录
-        format: 输出格式，支持 "xml" 或 "json"
+        device_serial: 设备序列号，如果有多个设备时必须指定
     """
     try:
-        # 确保输出目录存在
+        devices = get_connected_devices()
+        
+        if not devices:
+            print("错误: 未找到已连接的设备")
+            return
+        
+        if len(devices) > 1 and not device_serial:
+            print("检测到多个设备:")
+            for i, serial in enumerate(devices):
+                print(f"{i + 1}. {serial}")
+            selection = input("请选择设备序号(1-{}): ".format(len(devices)))
+            try:
+                device_serial = devices[int(selection) - 1]
+            except (ValueError, IndexError):
+                print("无效的选择")
+                return
+        
+        # 如果只有一个设备且未指定序列号，使用第一个设备
+        if not device_serial:
+            device_serial = devices[0]
+
+        print(f"使用设备: {device_serial}")
+
+        # 创建输出目录
+        output_dir = "hierarchy_dumps"
         os.makedirs(output_dir, exist_ok=True)
         
-        # 连接设备
-        d = u2.connect()
-        
-        # 生成时间戳
+        # 生成输出文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = os.path.join(output_dir, f"hierarchy_{timestamp}.xml")
+        temp_file = "/sdcard/window_dump.xml"
         
-        if format == "xml":
-            # 获取XML格式的层级结构
-            xml_content = d.dump_hierarchy()
-            
-            # 美化XML输出
-            dom = xml.dom.minidom.parseString(xml_content)
-            pretty_xml = dom.toprettyxml(indent="  ")
-            
-            # 保存文件
-            filename = f"hierarchy_{timestamp}.xml"
-            filepath = os.path.join(output_dir, filename)
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(pretty_xml)
-                
-        elif format == "json":
-            # 获取JSON格式的层级结构
-            hierarchy = d.jsonrpc.dumpWindowHierarchy(compressed=False)
-            
-            # 保存文件
-            filename = f"hierarchy_{timestamp}.json"
-            filepath = os.path.join(output_dir, filename)
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(hierarchy, f, ensure_ascii=False, indent=2)
-                
-        print(f"已保存UI层级到: {filepath}")
-        return filepath
+        # 执行dump命令，重定向stderr到/dev/null
+        dump_cmd = ['adb', '-s', device_serial, 'shell', 'uiautomator', 'dump', temp_file, '2>/dev/null']
+        subprocess.run(' '.join(dump_cmd), shell=True)
         
-    except Exception as e:
+        # 从设备获取XML内容
+        cat_cmd = ['adb', '-s', device_serial, 'shell', 'cat', temp_file]
+        result = subprocess.run(cat_cmd, capture_output=True, text=True)
+        
+        if result.returncode == 0 and result.stdout:
+            # 格式化XML
+            formatted_xml = format_xml(result.stdout)
+            
+            # 保存格式化后的XML
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(formatted_xml)
+            
+            file_size = os.path.getsize(output_file)
+            print(f"\n✓ UI层级已成功导出到: {output_file}")
+            print(f"  文件大小: {file_size/1024:.1f} KB")
+            
+            # 清理设备上的临时文件
+            subprocess.run(['adb', '-s', device_serial, 'shell', 'rm', temp_file], 
+                         capture_output=True)
+        else:
+            print("\n✗ UI层级导出失败")
+            if result.stderr:
+                print(f"错误信息: {result.stderr}")
+            
+    except subprocess.CalledProcessError as e:
         print(f"导出UI层级时发生错误: {str(e)}")
-        return None
+    except Exception as e:
+        print(f"发生未知错误: {str(e)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="导出Android设备的UI层级结构")
-    parser.add_argument("--output-dir", "-o", default="dumps",
-                      help="输出目录 (默认: dumps)")
-    parser.add_argument("--format", "-f", choices=["xml", "json"], default="xml",
-                      help="输出格式 (默认: xml)")
-    
-    args = parser.parse_args()
-    dump_hierarchy(args.output_dir, args.format)
+    # 支持 -h 或 --help 参数显示帮助信息
+    if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']:
+        print("""
+使用方法:
+    python dump_hierarchy.py [设备序列号]
+
+参数:
+    设备序列号   可选，指定要使用的设备。如果有多个设备连接但未指定，将提示选择。
+
+示例:
+    python dump_hierarchy.py                    # 自动选择或提示选择设备
+    python dump_hierarchy.py 172.16.1.5:38357  # 使用指定的设备
+    python dump_hierarchy.py -h                 # 显示此帮助信息
+        """.strip())
+        return
+
+    # 如果命令行提供了设备序列号，则使用它
+    device_serial = sys.argv[1] if len(sys.argv) > 1 else None
+    dump_hierarchy(device_serial)
 
 if __name__ == "__main__":
     main() 

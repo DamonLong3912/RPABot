@@ -26,7 +26,9 @@ from .flow_actions import (
     LoopAction,
     SleepAction,
     ForEachAction,
-    CheckNoRepeatedValueAction
+    CheckNoRepeatedValueAction,
+    BreakLoopAction,
+    ContinueLoopAction
 )
 from .app_actions import (
     CheckAndInstallAppAction,
@@ -71,7 +73,9 @@ ACTION_MAP = {
     'get_list_item': GetListItemAction,
     'get_node_by_path': GetNodeByPathAction,
     'get_list_item_bounds': GetListItemBoundsAction,
-    'set_timestamp': SetTimestampAction
+    'set_timestamp': SetTimestampAction,
+    'break_loop': BreakLoopAction,
+    'continue_loop': ContinueLoopAction
 }
 
 def get_action_class(action_type: str) -> type:

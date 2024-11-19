@@ -3,6 +3,8 @@ from .base_action import BaseAction
 import time
 import re
 import xml.etree.ElementTree as ET
+import os
+from datetime import datetime
 
 class GetNodeDescendantsContentAction(BaseAction):
     """获取指定区域内的节点内容"""
@@ -353,6 +355,22 @@ class GetNodeByPathAction(BaseAction):
                     continue
             
             self.logger.error("所有路径都未找到匹配的节点")
+            
+            # 保存UI层级结构到dumps目录
+            try:
+                dumps_dir = "dumps"
+                os.makedirs(dumps_dir, exist_ok=True)
+                
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                dump_file = os.path.join(dumps_dir, f"hierarchy_dump_{timestamp}.xml")
+                
+                with open(dump_file, "w", encoding="utf-8") as f:
+                    f.write(xml_content)
+                    
+                self.logger.info(f"UI层级结构已保存到: {dump_file}")
+            except Exception as dump_err:
+                self.logger.error(f"保存UI层级结构失败: {str(dump_err)}")
+            
             return {} if len(attributes) > 1 else ""
             
         except Exception as e:
