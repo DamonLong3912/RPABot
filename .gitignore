@@ -59,7 +59,7 @@ debug/
 
 # outputs
 outputs/
-*.xlsx
+exports/
 
 # scripts
 scripts/

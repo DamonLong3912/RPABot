@@ -8,12 +8,12 @@ variables:
   station_name_history: []
   timestamp: ""
   search_locations: [
-    "广东省广州市白云区石门街道联滘路高埔工业区",
+    # "广东省广州市白云区石门街道联滘路高埔工业区",
     # "广东省广州市黄埔区水西街崑山祖祠",
     # "广东省广州市增城区石滩镇人民政府",
     # "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
-    # "广东省广州市从化区太平镇刘宅",
-    # "广东省广州市增城区派潭镇磨刀坑",
+    # "鹏程自然农场(广州共襄农业有限公司)",
+    "广东省广州市增城区派潭镇磨刀坑",
     # "广东省广州市从化区良口镇长明街",
     # "广东省广州市从化区吕田镇鱼洞村"
   ]
@@ -57,6 +57,11 @@ steps:
           action: "click_region"
           click_region: [0, 1600, 1080, 1700]
           priority: 2
+        - name: "升级提醒"
+          patterns: ["发现新版本"]
+          action: "click_region"
+          click_region: [794, 834, 924, 964]
+          priority: 3
 
   - name: "循环搜索位置"
     action: "for_each"
@@ -156,6 +161,22 @@ steps:
                   list: "${current_bounds_list}"
                   variable: "current_bounds"
                   steps:
+
+                    - name: "获取营业状态"
+                      action: "verify_text_in_region"
+                      params:
+                        region: "${current_bounds}"
+                        expected_text: "暂停营业"
+                        match_type: "text"
+                        save_to: "closed_station"
+
+                    - name: "检查油站营业状态并跳过"
+                      action: "continue_loop"
+                      conditions:
+                        - type: "variable"
+                          name: "closed_station"
+                          value: true
+
                     - name: "点击加油站"
                       action: "wait_and_click_region"
                       params:
@@ -201,7 +222,7 @@ steps:
                     - name: "动态调整滑动距离"
                       action: "loop"
                       params:
-                        max_iterations: 10
+                        max_iterations: 5
                         break_conditions:
                           - type: "variable"
                             name: "title_verified"
@@ -222,7 +243,7 @@ steps:
                           - name: "等待加载"
                             action: "sleep"
                             params:
-                              seconds: 1
+                              seconds: 0.6
 
                           - name: "验证标题栏"
                             action: "verify_text_in_region"
@@ -263,6 +284,7 @@ steps:
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 1, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 0, 0]
                         attributes:
@@ -288,6 +310,7 @@ steps:
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 1, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 1, 0]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 1, 0]
                         attributes:
@@ -332,12 +355,14 @@ steps:
                       params:
                         package: "com.didi.oil"
                         index_path:
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
                           - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 3, 0, 0, 0, 1, 0, 1]
                         attributes:
                           - "content-desc"
                         pattern: "^\\d+\\.\\d{2}$"
@@ -395,7 +420,7 @@ steps:
                         locate_by: "description"
                         text: "95#"
                         match_type: "exact"
-                        timeout: 2
+                        timeout: 1
                         interval: 0.4
                         save_to: "click_95_success"
                       conditions:
@@ -497,6 +522,7 @@ steps:
                       params:
                         package: "com.didi.oil"
                         index_path:
+                          - [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
@@ -507,6 +533,7 @@ steps:
                           - [0 ,0 ,0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 0, 1, 2, 0, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 3, 0, 0, 0, 1, 0, 1]
                           - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 1, 2, 0, 0, 1]
+                          - [0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 1, 0, 1, 3, 0, 0, 0, 1, 0, 1]
                         attributes:
                           - "content-desc"
                         pattern: "^\\d+\\.\\d{2}$"
@@ -613,7 +640,7 @@ steps:
                     - name: "等待返回"
                       action: "sleep"
                       params:
-                        seconds: 1
+                        seconds: 0.5
 
               - name: "向上滑动"
                 action: "swipe"

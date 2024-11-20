@@ -240,41 +240,60 @@ class VerifyTextInRegionAction(BaseAction):
         match_type = params.get('match_type', 'text')  # 匹配方式
         
         try:
+            # 处理region参数
+            if isinstance(region, str) and region.startswith('${') and region.endswith('}'):
+                var_name = region.strip('${}')
+                region = self.bot.get_variable(var_name)
+                if region is None:
+                    self.logger.error(f"变量 {var_name} 未找到")
+                    if save_to:
+                        self.bot.set_variable(save_to, False)
+                    return False
+
             # 定义匹配方式映射
             selector_map = {
-                'text': (self.ui_animator(text=expected_text), "text"),
-                'text_contains': (self.ui_animator(textContains=expected_text), "textContains"),
-                'description': (self.ui_animator(description=expected_text), "description"),
-                'description_contains': (self.ui_animator(descriptionContains=expected_text), "descriptionContains")
+                'text': (f'new UiSelector().text("{expected_text}")', "text"),
+                'text_contains': (f'new UiSelector().textContains("{expected_text}")', "textContains"),
+                'description': (f'new UiSelector().description("{expected_text}")', "description"),
+                'description_contains': (f'new UiSelector().descriptionContains("{expected_text}")', "descriptionContains")
             }
             
             if match_type not in selector_map:
                 raise ValueError(f"不支持的匹配方式: {match_type}")
                 
-            selector, selector_type = selector_map[match_type]
+            selector_str, selector_type = selector_map[match_type]
             
             if region:
+                # 确保region是列表或元组且包含4个值
+                if not isinstance(region, (list, tuple)) or len(region) != 4:
+                    raise ValueError("region参数必须是包含4个值的列表或元组: [x1, y1, x2, y2]")
+                
                 x1, y1, x2, y2 = map(int, region)
                 
-                if selector.exists:
-                    element = selector.info
-                    bounds = element['bounds']
+                # 获取所有匹配的元素
+                matching_elements = self.ui_animator.xpath(f'//*[@{selector_type}="{expected_text}"]').all()
+                
+                for element in matching_elements:
+                    bounds = element.info['bounds']
                     if (bounds['left'] >= x1 and bounds['top'] >= y1 and 
                         bounds['right'] <= x2 and bounds['bottom'] <= y2):
-                        self.logger.info(f"找到文本: {expected_text} (bounds: {bounds})")
+                        self.logger.info(f"在指定区域内找到文本: {expected_text} (bounds: {bounds})")
                         
                         if save_to:
                             self.bot.set_variable(save_to, True)
                         return True
+                
+                self.logger.info(f"在指定区域内未找到文本: {expected_text}")
             else:
                 # 不限制区域的查找
-                if selector.exists:
+                matching_elements = self.ui_animator.xpath(f'//*[@{selector_type}="{expected_text}"]').all()
+                if matching_elements:
                     self.logger.info(f"找到文本: {expected_text}")
                     
                     if save_to:
                         self.bot.set_variable(save_to, True)
                     return True
-            
+
             # 如果没找到
             self.logger.info(f"未找到文本: {expected_text}")
             if save_to:

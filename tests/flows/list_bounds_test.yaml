@@ -30,25 +30,34 @@ steps:
             list: "${current_bounds_list}"
             variable: "current_bounds"
             steps:
-              - name: "点击加油站"
-                action: "wait_and_click_region"
+
+              - name: "验证标题栏"
+                action: "verify_text_in_region"
                 params:
                   region: "${current_bounds}"
+                  expected_text: "暂停营业"
+                  match_type: "text"
+                  save_to: "closed_station"
 
-              - name: "等待加载"
-                action: "sleep"
-                params:
-                  seconds: 1
+              # - name: "点击加油站"
+              #   action: "wait_and_click_region"
+              #   params:
+              #     region: "${current_bounds}"
 
-              - name: "返回列表页面"
-                action: "wait_and_click_region"
-                params:
-                  region: [20, 120, 100, 200]
+              # - name: "等待加载"
+              #   action: "sleep"
+              #   params:
+              #     seconds: 1
 
-              - name: "等待返回"
-                action: "sleep"
-                params:
-                  seconds: 1
+              # - name: "返回列表页面"
+              #   action: "wait_and_click_region"
+              #   params:
+              #     region: [20, 120, 100, 200]
+
+              # - name: "等待返回"
+              #   action: "sleep"
+              #   params:
+              #     seconds: 1
 
         - name: "向上滑动"
           action: "swipe"
