@@ -54,9 +54,6 @@ Thumbs.db
 tmp/
 temp/
 
-# debug
-debug/
-
 # outputs
 outputs/
 exports/

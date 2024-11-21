@@ -56,32 +56,6 @@ class WaitAndClickRegionAction(BaseAction):
                 # 使用UIAutomator2执行点击
                 self.ui_animator.click(center_x, center_y)
                 
-                # 如果是调试模式，保存调试信息
-                if self.bot.debug:
-                    annotations = [
-                        {
-                            'type': 'circle',
-                            'data': [center_x, center_y, 10],
-                            'color': (0, 0, 255),
-                            'thickness': -1
-                        },
-                        {
-                            'type': 'text',
-                            'data': [f"Click: ({center_x}, {center_y})",
-                                    center_x + 10, center_y - 10],
-                            'color': (0, 0, 255),
-                            'thickness': 2
-                        }
-                    ]
-                    
-                    self.save_debug_screenshot(
-                        step_name=step_name,
-                        annotations=annotations,
-                        extra_info={
-                            'click_point': [center_x, center_y]
-                        }
-                    )
-                
                 return True
                 
             self.logger.warning(f"等待点击区域超时: {region}")
@@ -174,18 +148,6 @@ class ClickRegionAction(BaseAction):
             
             # 使用UIAnimator2执行点击
             self.ui_animator.click(center_x, center_y)
-            
-            if self.bot.debug:
-                self.save_debug_screenshot(
-                    step_name='click_region',
-                    annotations=[{
-                        'type': 'circle',
-                        'data': [center_x, center_y, 10],
-                        'color': (0, 0, 255),
-                        'thickness': -1
-                    }],
-                    extra_info={'click_point': [center_x, center_y]}
-                )
             
             return True
             

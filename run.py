@@ -115,7 +115,7 @@ def setup_dev_env():
 
 def clean_temp_directories():
     """清理临时目录"""
-    dirs_to_clean = ['logs', 'debug', 'temp']
+    dirs_to_clean = ['logs', 'temp']
     project_root = Path(__file__).parent.absolute()
     
     logger = get_logger(__name__)

@@ -20,19 +20,11 @@ class BaseBot:
         self.logger = get_logger(__name__)
         # 优先使用传入的debug参数,其次使用配置文件中的设置
         self.debug = debug or self.config.get('debug', False)
-        self.debug_dir = None
         self.current_step_index = 0
         
         # 从配置文件获取设备连接信息
         device_config = self.config.get('device', {})
         self.device_ip = device_config.get('ip')
-        
-        if self.debug:
-            # 创建调试输出目录
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            self.debug_dir = Path("debug") / timestamp
-            self.debug_dir.mkdir(parents=True, exist_ok=True)
-            self.logger.info(f"调试模式已启用，输出目录: {self.debug_dir}")
         
         # 设置环境变量
         assets_dir = self.config.get('assets_dir', 'assets')
@@ -227,12 +219,6 @@ class BaseBot:
         step_type = step.get('action')
         step_name = step.get('name', '未命名步骤')
         
-        if self.debug:
-            # 创建步骤调试目录，使用序号前缀
-            step_debug_dir = self.debug_dir / f"{self.current_step_index:03d}_{step_name}"
-            step_debug_dir.mkdir(exist_ok=True)
-            self.current_debug_dir = step_debug_dir
-        
         try:
             # 统一处理条件检查
             if not self._should_execute_step(step):
@@ -251,9 +237,9 @@ class BaseBot:
             result = self._execute_action(step_type, resolved_params)
             self._save_step_result(step_name, result)
             
-        finally:
-            if self.debug:
-                self.current_debug_dir = None
+        except Exception as e:
+            self.logger.error(f"流程执行失败: {str(e)}")
+            raise RuntimeError(f"流程执行失败: {str(e)}")
 
     def _should_execute_step(self, step: Dict[str, Any]) -> bool:
         """检查步骤是否应该执行"""
