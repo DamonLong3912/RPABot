@@ -67,3 +67,4 @@ hierarchy_dumps/
 
 # config
 config.yaml
+database.yaml

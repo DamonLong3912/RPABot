@@ -19,4 +19,10 @@ rich>=10.0.0
 
 # 数据处理
 pandas>=1.3.0
-openpyxl>=3.0.0  # Excel支持 
+openpyxl>=3.0.0  # Excel支持
+
+# 数据库支持
+mysql-connector-python>=8.0.0  # MySQL连接器
+PyMySQL>=1.0.0  # MySQL Python驱动
+SQLAlchemy>=1.4.0  # ORM支持(可选)
+cryptography>=3.4.0  # MySQL加密连接支持

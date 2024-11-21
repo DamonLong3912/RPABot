@@ -20,7 +20,8 @@ from .data_actions import (
     SetVariableAction,
     GetVariableAction,
     GetListItemAction,
-    SetTimestampAction
+    SetTimestampAction,
+    ExportToDBAction
 )
 from .flow_actions import (
     LoopAction,
@@ -57,6 +58,7 @@ ACTION_MAP = {
     'input_text': InputTextAction,
     'append_to_list': AppendToListAction,
     'export_data': ExportDataAction,
+    'export_to_db': ExportToDBAction,
     'set_variable': SetVariableAction,
     'get_variable': GetVariableAction,
     'loop': LoopAction,

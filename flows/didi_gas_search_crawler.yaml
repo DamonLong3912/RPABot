@@ -10,12 +10,12 @@ variables:
   search_locations: [
     # "广东省广州市白云区石门街道联滘路高埔工业区",
     # "广东省广州市黄埔区水西街崑山祖祠",
-    # "广东省广州市增城区石滩镇人民政府",
+    "广东省广州市增城区石滩镇人民政府",
     # "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
     # "鹏程自然农场(广州共襄农业有限公司)",
     # "广东省广州市增城区派潭镇磨刀坑",
     # "广东省广州市从化区良口镇长明街",
-    "广东省广州市从化区吕田镇鱼洞村"
+    # "广东省广州市从化区吕田镇鱼洞村"
   ]
 
 prerequisites:
@@ -119,7 +119,7 @@ steps:
         - name: "等待搜索结果"
           action: "sleep"
           params:
-            seconds: 1
+            seconds: 1.5
             
         - name: "点击第一个搜索结果"
           action: "wait_and_click_region"
@@ -587,6 +587,15 @@ steps:
                         filepath: "outputs"
                         filename: "gas_stations_${timestamp}.json"
                         mode: "append"
+                      conditions:
+                        - type: "variable"
+                          name: "is_new_station"
+                          value: true
+
+                    - name: "导出到数据库"
+                      action: "export_to_db"
+                      params:
+                        data: "station_data"
                       conditions:
                         - type: "variable"
                           name: "is_new_station"

@@ -1,9 +1,11 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 from .base_action import BaseAction
 import json
 import yaml
 from pathlib import Path
 from datetime import datetime
+import mysql.connector
+import sqlite3
 
 class AppendToListAction(BaseAction):
     """向列表追加数据"""
@@ -256,3 +258,341 @@ class SetTimestampAction(BaseAction):
         except Exception as e:
             self.logger.error(f"设置时间戳失败: {str(e)}")
             return False 
+
+class ExportToDBAction(BaseAction):
+    """导出数据到数据库(支持MySQL和SQLite)"""
+    
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.config = self._load_config()
+        self.use_local = self.config.get("use_local", False)
+        
+    def _load_config(self) -> Dict:
+        """加载数据库配置"""
+        config_path = Path("config/database.yaml")
+        if not config_path.exists():
+            raise FileNotFoundError("数据库配置文件不存在")
+            
+        with open(config_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    
+    def _ensure_sqlite_db(self) -> None:
+        """确保SQLite数据库和表存在"""
+        db_path = Path(self.config["sqlite"]["database"])
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # 创建时区相关函数
+        conn.create_function('LOCAL_TIMESTAMP', 0, lambda: datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        
+        # 创建表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS gas_stations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                station_name TEXT NOT NULL,
+                station_address TEXT NOT NULL,
+                oil_92_gun_price REAL,
+                oil_92_platform_price REAL,
+                oil_92_guns TEXT,
+                oil_95_gun_price REAL,
+                oil_95_platform_price REAL,
+                oil_95_guns TEXT,
+                created_at TIMESTAMP DEFAULT (LOCAL_TIMESTAMP()),
+                updated_at TIMESTAMP DEFAULT (LOCAL_TIMESTAMP()),
+                UNIQUE(station_name)
+            )
+        """)
+        
+        conn.commit()
+        conn.close()
+    
+    def _get_connection(self):
+        """获取数据库连接"""
+        if self.use_local:
+            self._ensure_sqlite_db()
+            db_path = Path(self.config["sqlite"]["database"])
+            conn = sqlite3.connect(db_path)
+            # 启用外键约束
+            conn.execute("PRAGMA foreign_keys = ON")
+            return conn
+        else:
+            return mysql.connector.connect(**self.config["mysql"])
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        """执行数据导出"""
+        try:
+            data_var = params["data"]
+            raw_data = self.bot.get_variable(data_var)
+            if not raw_data:
+                return True
+                
+            stations = self._transform_data(raw_data)
+            conn = self._get_connection()
+            
+            try:
+                if self.use_local:
+                    self._execute_sqlite(conn, stations)
+                else:
+                    self._execute_mysql(conn, stations)
+                    
+                conn.commit()
+                self.logger.info(f"成功处理 {len(stations)} 条记录")
+                return True
+                
+            finally:
+                conn.close()
+                
+        except Exception as e:
+            self.logger.error(f"导出数据失败: {str(e)}")
+            return False
+    
+    def _prepare_update_fields(self, station: Dict, existing: Dict) -> Tuple[List[str], Dict, bool]:
+        """准备更新字段
+        
+        Args:
+            station: 新数据
+            existing: 已存在的数据
+            
+        Returns:
+            Tuple[List[str], Dict, bool]: (更新字段列表, 更新值字典, 是否有价格更新)
+        """
+        update_fields = []
+        update_values = {"id": existing["id"]}
+        has_price_update = False
+        
+        # 地址字段
+        if station.get("station_address") and station["station_address"] != existing["station_address"]:
+            update_fields.append("station_address = %(station_address)s")
+            update_values["station_address"] = station["station_address"]
+        
+        # 92#油价相关字段
+        if station.get("oil_92_gun_price") is not None:
+            if existing["oil_92_gun_price"] != station["oil_92_gun_price"]:
+                update_fields.append("oil_92_gun_price = %(oil_92_gun_price)s")
+                update_values["oil_92_gun_price"] = station["oil_92_gun_price"]
+                has_price_update = True
+        
+        if station.get("oil_92_platform_price") is not None:
+            if existing["oil_92_platform_price"] != station["oil_92_platform_price"]:
+                update_fields.append("oil_92_platform_price = %(oil_92_platform_price)s")
+                update_values["oil_92_platform_price"] = station["oil_92_platform_price"]
+                has_price_update = True
+        
+        # 92#油枪
+        if station.get("oil_92_guns"):
+            guns = json.loads(station["oil_92_guns"])
+            if guns and guns != json.loads(existing["oil_92_guns"] or "[]"):
+                update_fields.append("oil_92_guns = %(oil_92_guns)s")
+                update_values["oil_92_guns"] = station["oil_92_guns"]
+        
+        # 95#油价相关字段
+        if station.get("oil_95_gun_price") is not None:
+            if existing["oil_95_gun_price"] != station["oil_95_gun_price"]:
+                update_fields.append("oil_95_gun_price = %(oil_95_gun_price)s")
+                update_values["oil_95_gun_price"] = station["oil_95_gun_price"]
+                has_price_update = True
+        
+        if station.get("oil_95_platform_price") is not None:
+            if existing["oil_95_platform_price"] != station["oil_95_platform_price"]:
+                update_fields.append("oil_95_platform_price = %(oil_95_platform_price)s")
+                update_values["oil_95_platform_price"] = station["oil_95_platform_price"]
+                has_price_update = True
+        
+        # 95#油枪
+        if station.get("oil_95_guns"):
+            guns = json.loads(station["oil_95_guns"])
+            if guns and guns != json.loads(existing["oil_95_guns"] or "[]"):
+                update_fields.append("oil_95_guns = %(oil_95_guns)s")
+                update_values["oil_95_guns"] = station["oil_95_guns"]
+        
+        return update_fields, update_values, has_price_update
+    
+    def _execute_sqlite(self, conn: sqlite3.Connection, stations: List[Dict]) -> None:
+        """执行SQLite数据操作"""
+        cursor = conn.cursor()
+        
+        for station in stations:
+            # 验证必要字段
+            if not station.get("station_name"):
+                self.logger.warning("跳过无效数据: 缺少加油站名称")
+                continue
+            
+            # 检查是否存在该加油站
+            cursor.execute(
+                "SELECT * FROM gas_stations WHERE station_name = ?",
+                (station["station_name"],)
+            )
+            existing = cursor.fetchone()
+            
+            if existing:
+                # 转换为字典格式
+                columns = [col[0] for col in cursor.description]
+                existing = dict(zip(columns, existing))
+                
+                # 准备更新字段
+                update_fields, update_values, has_price_update = self._prepare_update_fields(station, existing)
+                
+                # 只有在有字段需要更新时才执行更新
+                if update_fields:
+                    # 转换MySQL风格的参数占位符为SQLite风格
+                    update_fields = [f.replace('%(', ':').replace(')s', '') for f in update_fields]
+                    
+                    # 只有在价格有更新时才更新时间戳
+                    if has_price_update:
+                        update_fields.append("updated_at = datetime('now', 'localtime')")
+                    
+                    update_sql = f"""
+                        UPDATE gas_stations SET
+                            {', '.join(update_fields)}
+                        WHERE id = :id
+                    """
+                    cursor.execute(update_sql, update_values)
+                    self.logger.info(f"更新加油站数据: {station['station_name']}")
+                else:
+                    self.logger.info(f"加油站数据无变化: {station['station_name']}")
+                    
+            else:
+                # 验证新记录的必要字段
+                if not station.get("station_address"):
+                    self.logger.warning(f"跳过新增数据: 加油站 {station['station_name']} 缺少地址信息")
+                    continue
+                    
+                # 插入新记录
+                insert_sql = """
+                    INSERT INTO gas_stations (
+                        station_name, station_address,
+                        oil_92_gun_price, oil_92_platform_price, oil_92_guns,
+                        oil_95_gun_price, oil_95_platform_price, oil_95_guns,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
+                """
+                cursor.execute(insert_sql, (
+                    station["station_name"],
+                    station["station_address"],
+                    station["oil_92_gun_price"],
+                    station["oil_92_platform_price"],
+                    station["oil_92_guns"],
+                    station["oil_95_gun_price"],
+                    station["oil_95_platform_price"],
+                    station["oil_95_guns"]
+                ))
+                self.logger.info(f"插入新加油站: {station['station_name']}")
+    
+    def _execute_mysql(self, conn: mysql.connector.connection.MySQLConnection, stations: List[Dict]) -> None:
+        """执行MySQL数据操作"""
+        cursor = conn.cursor(dictionary=True)
+        
+        try:
+            # 首先确保表存在
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS gas_stations (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    station_name VARCHAR(100) NOT NULL,
+                    station_address VARCHAR(255) NOT NULL,
+                    oil_92_gun_price DECIMAL(10,2),
+                    oil_92_platform_price DECIMAL(10,2),
+                    oil_92_guns JSON,
+                    oil_95_gun_price DECIMAL(10,2),
+                    oil_95_platform_price DECIMAL(10,2),
+                    oil_95_guns JSON,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_name_address (station_name)
+                )
+            """)
+            conn.commit()
+            
+            for station in stations:
+                # 验证必要字段
+                if not station.get("station_name"):
+                    self.logger.warning("跳过无效数据: 缺少加油站名称")
+                    continue
+                    
+                # 检查是否存在该加油站
+                cursor.execute(
+                    "SELECT * FROM gas_stations WHERE station_name = %(station_name)s",
+                    {"station_name": station["station_name"]}
+                )
+                existing = cursor.fetchone()
+                
+                if existing:
+                    # 准备更新字段
+                    update_fields, update_values, has_price_update = self._prepare_update_fields(station, existing)
+                    
+                    # 只有在有字段需要更新时才执行更新
+                    if update_fields:
+                        # 只有在价格有更新时才更新时间戳
+                        if has_price_update:
+                            update_fields.append("updated_at = CURRENT_TIMESTAMP")
+                        
+                        update_sql = f"""
+                            UPDATE gas_stations SET
+                                {', '.join(update_fields)}
+                            WHERE id = %(id)s
+                        """
+                        cursor.execute(update_sql, update_values)
+                        self.logger.info(f"更新加油站数据: {station['station_name']}")
+                    else:
+                        self.logger.info(f"加油站数据无变化: {station['station_name']}")
+                    
+                else:
+                    # 验证新记录的必要字段
+                    if not station.get("station_address"):
+                        self.logger.warning(f"跳过新增数据: 加油站 {station['station_name']} 缺少地址信息")
+                        continue
+                    
+                    # 插入新记录
+                    insert_sql = """
+                        INSERT INTO gas_stations (
+                            station_name, station_address,
+                            oil_92_gun_price, oil_92_platform_price, oil_92_guns,
+                            oil_95_gun_price, oil_95_platform_price, oil_95_guns
+                        ) VALUES (
+                            %(station_name)s, %(station_address)s,
+                            %(oil_92_gun_price)s, %(oil_92_platform_price)s, %(oil_92_guns)s,
+                            %(oil_95_gun_price)s, %(oil_95_platform_price)s, %(oil_95_guns)s
+                        )
+                    """
+                    cursor.execute(insert_sql, station)
+                    self.logger.info(f"插入新加油站: {station['station_name']}")
+            
+            conn.commit()
+            self.logger.info(f"成功处理 {len(stations)} 条记录")
+            
+        except Exception as e:
+            self.logger.error(f"MySQL操作失败: {str(e)}")
+            conn.rollback()
+            raise
+    
+    def _transform_data(self, raw_data: List[Dict]) -> List[Dict]:
+        """转换数据格式以适应数据库表结构"""
+        transformed = []
+        for item in raw_data:
+            # 检查必要字段
+            if not item.get("name") or not item.get("address"):
+                self.logger.warning(f"跳过无效数据: 缺少必要字段 name 或 address")
+                continue
+            
+            station = {
+                "station_name": item["name"],
+                "station_address": item["address"],
+                "oil_92_gun_price": self._parse_price(item.get("station_price_92")),
+                "oil_92_platform_price": self._parse_price(item.get("didi_price_92")),
+                "oil_92_guns": json.dumps(item.get("gun_numbers_92", []), ensure_ascii=False),
+                "oil_95_gun_price": self._parse_price(item.get("station_price_95")),
+                "oil_95_platform_price": self._parse_price(item.get("didi_price_95")),
+                "oil_95_guns": json.dumps(item.get("gun_numbers_95", []), ensure_ascii=False),
+            }
+            transformed.append(station)
+        return transformed
+    
+    def _parse_price(self, price_str: str) -> float:
+        """解析价格字符串"""
+        if not price_str:
+            return None
+        try:
+            return float(price_str.replace("油站价¥", "").replace("¥", "").strip())
+        except (ValueError, AttributeError):
+            return None
