@@ -8,14 +8,15 @@ variables:
   station_name_history: []
   timestamp: ""
   search_locations: [
-    "广东省广州市白云区石门街道联滘路高埔工业区",
+    # "广东省广州市白云区石门街道联滘路高埔工业区",
     # "广东省广州市黄埔区水西街崑山祖祠",
     # "广东省广州市增城区石滩镇人民政府",
     # "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
-    # "鹏程自然农场(广州共襄农业有限公司)",
-    # "广东省广州市增城区派潭镇磨刀坑",
+    "鹏程自然农场(广州共襄农业有限公司)",
+    "广东省广州市增城区派潭镇磨刀坑",
     # "广东省广州市从化区良口镇长明街",
-    # "广东省广州市从化区吕田镇鱼洞村"
+    # "广东省广州市从化区吕田镇鱼洞村",
+    # "广州市白云区广汽商贸用品"
   ]
 
 prerequisites:
@@ -134,6 +135,12 @@ steps:
           action: "sleep"
           params:
             seconds: 2
+
+        - name: "重置新增站点标记"
+          action: "set_variable"
+          params:
+            variables:
+              has_new_stations: true
 
         - name: "开始循环爬取"
           action: "loop"
@@ -479,7 +486,7 @@ steps:
                     - name: "等待加载"
                       action: "sleep"
                       params:
-                        seconds: 1.0
+                        seconds: 1.5
                       conditions:
                         - type: "variable"
                           name: "is_new_station"
@@ -667,4 +674,9 @@ steps:
                 action: "sleep"
                 params:
                   seconds: 2
+        
+        - name: "点击返回按钮"
+          action: "wait_and_click_region"
+          params:
+            region: [20, 120, 100, 200]
 
