@@ -8,9 +8,9 @@ variables:
   station_name_history: []
   timestamp: ""
   search_locations: [
-    # "广东省广州市白云区石门街道联滘路高埔工业区",
+    "广东省广州市白云区石门街道联滘路高埔工业区",
     # "广东省广州市黄埔区水西街崑山祖祠",
-    "广东省广州市增城区石滩镇人民政府",
+    # "广东省广州市增城区石滩镇人民政府",
     # "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
     # "鹏程自然农场(广州共襄农业有限公司)",
     # "广东省广州市增城区派潭镇磨刀坑",
@@ -69,11 +69,14 @@ steps:
       list: "${variables.search_locations}"
       variable: "current_location"
       steps:
-        - name: "点击搜索栏"
-          action: "wait_and_click_region"
+        - name: "点击搜索框"
+          action: "wait_and_click_node"
           params:
-            region: [50, 120, 400, 200]
+            locate_by: "text"
+            text: "输入目的地，查找附近加油站"
+            match_type: "exact"
             timeout: 10
+            interval: 0.5
 
         - name: "等待搜索页面加载"
           action: "sleep"
