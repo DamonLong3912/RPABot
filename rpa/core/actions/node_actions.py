@@ -220,7 +220,6 @@ class WaitAndClickNodeAction(BaseAction):
                     center_x = (element_bounds['left'] + element_bounds['right']) // 2
                     center_y = (element_bounds['top'] + element_bounds['bottom']) // 2
                     
-                    # 执行点击
                     self.ui_animator.click(center_x, center_y)
                     if save_to:
                         self.set_variable(save_to, True)

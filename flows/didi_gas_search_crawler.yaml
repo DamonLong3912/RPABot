@@ -8,15 +8,15 @@ variables:
   station_name_history: []
   timestamp: ""
   search_locations: [
-    # "广东省广州市白云区石门街道联滘路高埔工业区",
-    # "广东省广州市黄埔区水西街崑山祖祠",
-    # "广东省广州市增城区石滩镇人民政府",
-    # "广东省广州市花都区狮岭镇芙梅路芙蓉峰公园",
-    "鹏程自然农场(广州共襄农业有限公司)",
-    "广东省广州市增城区派潭镇磨刀坑",
-    # "广东省广州市从化区良口镇长明街",
-    # "广东省广州市从化区吕田镇鱼洞村",
-    # "广州市白云区广汽商贸用品"
+    "流溪河林场小天鹅酒楼",
+    "广州城市理工学院",
+    "中铁联集职工食堂", 
+    "惠多农庄",
+    "沙东人家",
+    "番禺区城区大道鸡煲蟹",
+    "南横仓库",
+    "广州玉联酒店",
+    "增城区朱村街道荣记快餐厅"
   ]
 
 prerequisites:
@@ -179,6 +179,16 @@ steps:
                         expected_text: "暂停营业"
                         match_type: "text"
                         save_to: "closed_station"
+
+                    - name: "重置新增站点标记"
+                      action: "set_variable"
+                      params:
+                        variables:
+                          has_new_stations: false
+                      conditions:
+                        - type: "variable"
+                          name: "closed_station"
+                          value: true
 
                     - name: "检查油站营业状态并跳过"
                       action: "continue_loop"

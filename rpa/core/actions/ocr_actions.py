@@ -104,15 +104,6 @@ class HandlePopupsUntilTargetAction(OCRBaseAction):
                     region=screenshot_region
                 )
                 
-                target_results = self.bot.ocr_helper.extract_text(
-                    screenshot,
-                    keywords=[target_text]
-                )
-                
-                if target_results:
-                    self.logger.info(f"检测到目标文本: {target_text}")
-                    return True
-                
                 for popup in popups:
                     patterns = popup['patterns']
                     action = popup.get('action', 'click_first')
@@ -141,6 +132,15 @@ class HandlePopupsUntilTargetAction(OCRBaseAction):
                             if click_region:
                                 if self._click_region(click_region):
                                     break
+                
+                target_results = self.bot.ocr_helper.extract_text(
+                    screenshot,
+                    keywords=[target_text]
+                )
+                
+                if target_results:
+                    self.logger.info(f"检测到目标文本: {target_text}")
+                    return True
                 
                 time.sleep(check_interval)
             
