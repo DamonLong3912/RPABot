@@ -361,7 +361,8 @@ class GetNodeByPathAction(BaseAction):
                 os.makedirs(dumps_dir, exist_ok=True)
                 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                dump_file = os.path.join(dumps_dir, f"hierarchy_dump_{timestamp}.xml")
+                save_to = params.get("save_to", "unknown")  # 获取save_to参数，默认为"unknown"
+                dump_file = os.path.join(dumps_dir, f"hierarchy_dump_{save_to}_{timestamp}.xml")
                 
                 with open(dump_file, "w", encoding="utf-8") as f:
                     f.write(xml_content)

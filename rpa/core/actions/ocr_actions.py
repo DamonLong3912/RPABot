@@ -408,7 +408,7 @@ class WaitForKeyElementAction(BaseAction):
                     if selector.exists:
                         element = selector.info
                         element_text = element.get('text', '') or element.get('contentDescription', '')
-                        
+                        element_text = element_text.strip()
                         # 如果设置了contains_only，检查是否是包含但不完全一致的情况
                         if contains_only:
                             if text_pattern in element_text and text_pattern != element_text.strip():
