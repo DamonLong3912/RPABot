@@ -282,6 +282,7 @@ class GetNodeByPathAction(BaseAction):
                 
             attributes = params.get("attributes", ["text", "content-desc"])
             pattern = params.get("pattern")  # 可选的匹配模式
+            result_pattern = params.get("result_pattern")  # 新增: 结果提取模式
             
             # 获取当前UI树
             xml_content = self.ui_animator.dump_hierarchy()
@@ -328,6 +329,16 @@ class GetNodeByPathAction(BaseAction):
                                 if not re.match(pattern, str(value)):
                                     continue
                             
+                            # 新增: 如果有result_pattern，尝试提取匹配内容
+                            if result_pattern and value:
+                                try:
+                                    import re
+                                    match = re.search(result_pattern, str(value))
+                                    if match:
+                                        value = match.group(1) if match.groups() else match.group(0)
+                                except Exception as e:
+                                    self.logger.warning(f"应用result_pattern时出错: {str(e)}")
+                            
                             if "save_to" in params:
                                 self.logger.info(f"将值 {value} 保存到变量 {params['save_to']}")
                                 self.set_variable(params["save_to"], value)
@@ -338,7 +349,17 @@ class GetNodeByPathAction(BaseAction):
                         else:
                             result = {}
                             for attr in attributes:
-                                result[attr] = current_node.get(attr, "")
+                                value = current_node.get(attr, "")
+                                # 新增: 如果有result_pattern，尝试提取匹配内容
+                                if result_pattern and value:
+                                    try:
+                                        import re
+                                        match = re.search(result_pattern, str(value))
+                                        if match:
+                                            value = match.group(1) if match.groups() else match.group(0)
+                                    except Exception as e:
+                                        self.logger.warning(f"应用result_pattern时出错: {str(e)}")
+                                result[attr] = value
                             
                             # 如果有pattern，检查第一个属性是否匹配
                             if pattern and attributes:
@@ -355,21 +376,25 @@ class GetNodeByPathAction(BaseAction):
             
             self.logger.error("所有路径都未找到匹配的节点")
             
+            # 新增: 检查是否跳过保存UI层级结构
+            skip_dump = params.get("skip_dump", False)
+            
             # 保存UI层级结构到dumps目录
-            try:
-                dumps_dir = "dumps"
-                os.makedirs(dumps_dir, exist_ok=True)
-                
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                save_to = params.get("save_to", "unknown")  # 获取save_to参数，默认为"unknown"
-                dump_file = os.path.join(dumps_dir, f"hierarchy_dump_{save_to}_{timestamp}.xml")
-                
-                with open(dump_file, "w", encoding="utf-8") as f:
-                    f.write(xml_content)
+            if not skip_dump:
+                try:
+                    dumps_dir = "dumps"
+                    os.makedirs(dumps_dir, exist_ok=True)
                     
-                self.logger.info(f"UI层级结构已保存到: {dump_file}")
-            except Exception as dump_err:
-                self.logger.error(f"保存UI层级结构失败: {str(dump_err)}")
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    save_to = params.get("save_to", "unknown")
+                    dump_file = os.path.join(dumps_dir, f"hierarchy_dump_{save_to}_{timestamp}.xml")
+                    
+                    with open(dump_file, "w", encoding="utf-8") as f:
+                        f.write(xml_content)
+                        
+                    self.logger.info(f"UI层级结构已保存到: {dump_file}")
+                except Exception as dump_err:
+                    self.logger.error(f"保存UI层级结构失败: {str(dump_err)}")
             
             return {} if len(attributes) > 1 else ""
             

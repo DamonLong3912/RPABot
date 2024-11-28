@@ -154,69 +154,98 @@ class HandlePopupsUntilTargetAction(OCRBaseAction):
 class GetTextFromRegionAction(BaseAction):
     """获取文本内容"""
     
+    def _get_selector_map(self):
+        """获取匹配方式映射"""
+        return {
+            'text': (lambda pattern: self.ui_animator(text=pattern), "text"),
+            'text_contains': (lambda pattern: self.ui_animator(textContains=pattern), "textContains"),
+            'description': (lambda pattern: self.ui_animator(description=pattern), "description"),
+            'description_contains': (lambda pattern: self.ui_animator(descriptionContains=pattern), "descriptionContains")
+        }
+
+    def _get_selectors(self, element_pattern: str, match_type: str, selector_map: dict):
+        """获取选择器列表"""
+        if match_type:
+            if match_type not in selector_map:
+                raise ValueError(f"不支持的匹配方式: {match_type}")
+            return [(selector_map[match_type][0](element_pattern), match_type)]
+        return [(func(element_pattern), type_name) 
+                for func, type_name in selector_map.values()]
+
+    def _process_text(self, text: str, result_pattern: str) -> str:
+        """处理文本，应用result_pattern"""
+        if result_pattern and text:
+            try:
+                import re
+                match = re.search(result_pattern, str(text))
+                if match:
+                    return match.group(1) if match.groups() else match.group(0)
+            except Exception as e:
+                self.logger.warning(f"应用result_pattern时出错: {str(e)}")
+        return text
+
+    def _try_get_text(self, element_pattern: str, match_type: str, result_pattern: str) -> tuple[bool, str]:
+        """尝试获取文本"""
+        selector_map = self._get_selector_map()
+        if not element_pattern:
+            return False, ""
+
+        selectors = self._get_selectors(element_pattern, match_type, selector_map)
+        for selector, selector_type in selectors:
+            if selector.exists:
+                element = selector.info
+                text = (element.get('contentDescription', '') 
+                       if 'description' in selector_type 
+                       else element.get('text', '') or element.get('contentDescription', ''))
+                
+                if text:
+                    text = self._process_text(text, result_pattern)
+                    self.logger.info(f"通过{selector_type}找到文本: {text}")
+                    return True, text
+        return False, ""
+
     def execute(self, params: Dict[str, Any]) -> bool:
         save_to = params['save_to']
-        element_pattern = params.get('element_pattern')  # 元素文本模式
-        match_type = params.get('match_type')  # 匹配方式,不指定则尝试所有方式
-        timeout = params.get('timeout', 5)  # 默认5秒超时
-        interval = params.get('interval', 0.5)  # 默认0.5秒检查间隔
+        element_pattern = params.get('element_pattern')
+        match_type = params.get('match_type')
+        timeout = params.get('timeout')
+        interval = params.get('interval')
+        result_pattern = params.get('result_pattern')
+        overwrite_on_fail = params.get('overwrite_on_fail', True)
         
         try:
             self.logger.info(f"开始获取文本 (save_to: {save_to}, match_type: {match_type or 'all'})")
             
+            # 如果没有设置timeout和interval，只执行一次
+            if timeout is None or interval is None:
+                found, text = self._try_get_text(element_pattern, match_type, result_pattern)
+                if found:
+                    self.bot.set_variable(save_to, text)
+                    return True
+                if overwrite_on_fail:
+                    self.bot.set_variable(save_to, "")
+                return False
+            
+            # 如果设置了timeout和interval，使用循环重试逻辑
             start_time = time.time()
             while time.time() - start_time < timeout:
-                # 定义匹配方式映射
-                selector_map = {
-                    'text': (lambda pattern: self.ui_animator(text=pattern), "text"),
-                    'text_contains': (lambda pattern: self.ui_animator(textContains=pattern), "textContains"),
-                    'description': (lambda pattern: self.ui_animator(description=pattern), "description"),
-                    'description_contains': (lambda pattern: self.ui_animator(descriptionContains=pattern), "descriptionContains")
-                }
+                found, text = self._try_get_text(element_pattern, match_type, result_pattern)
+                if found:
+                    self.bot.set_variable(save_to, text)
+                    return True
                 
-                if element_pattern:
-                    # 如果指定了匹配方式
-                    if match_type:
-                        if match_type not in selector_map:
-                            raise ValueError(f"不支持的匹配方式: {match_type}")
-                        selectors = [(selector_map[match_type][0](element_pattern), match_type)]
-                    else:
-                        # 尝试所有匹配方式
-                        selectors = [(func(element_pattern), type_name) 
-                                   for func, type_name in selector_map.values()]
-                    
-                    for selector, selector_type in selectors:
-                        if selector.exists:
-                            element = selector.info
-                            # 根据匹配方式获取文本
-                            if 'description' in selector_type:
-                                text = element.get('contentDescription', '')
-                            else:
-                                text = element.get('text', '') or element.get('contentDescription', '')
-                            
-                            if text:  # 只在找到非空文本时返回
-                                self.logger.info(f"通过{selector_type}找到文本: {text}")
-                                self.bot.set_variable(save_to, text)
-                                return True
-
                 self.logger.debug(f"未找到目标文本,已等待 {time.time() - start_time:.1f} 秒")
                 time.sleep(interval)
 
             self.logger.warning(f"获取文本超时({timeout}秒)")
-            # 记录当前UI层级结构以便调试
-            try:
-                hierarchy = self.ui_animator.dump_hierarchy()
-                self.logger.debug(f"当前UI层级结构:\n{hierarchy}")
-            except Exception as e:
-                self.logger.error(f"获取UI层级结构失败: {str(e)}")
-            # 设置空字符串作为默认值
-            self.bot.set_variable(save_to, "")
+            if overwrite_on_fail:
+                self.bot.set_variable(save_to, "")
             return False
             
         except Exception as e:
             self.logger.error(f"获取文本失败: {str(e)}")
-            # 发生异常时也设置空字符串
-            self.bot.set_variable(save_to, "")
+            if overwrite_on_fail:
+                self.bot.set_variable(save_to, "")
             return False
 
 class VerifyTextInRegionAction(BaseAction):

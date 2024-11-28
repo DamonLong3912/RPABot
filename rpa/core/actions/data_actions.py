@@ -299,6 +299,7 @@ class ExportToDBAction(BaseAction):
                 oil_95_gun_price REAL,
                 oil_95_platform_price REAL,
                 oil_95_guns TEXT,
+                skip_station BOOLEAN DEFAULT 0,
                 created_at TIMESTAMP DEFAULT (LOCAL_TIMESTAMP()),
                 updated_at TIMESTAMP DEFAULT (LOCAL_TIMESTAMP()),
                 UNIQUE(station_name)
@@ -338,7 +339,6 @@ class ExportToDBAction(BaseAction):
                     self._execute_mysql(conn, stations)
                     
                 conn.commit()
-                self.logger.info(f"成功处理 {len(stations)} 条记录")
                 return True
                 
             finally:
@@ -362,6 +362,17 @@ class ExportToDBAction(BaseAction):
         update_values = {"id": existing["id"]}
         has_price_update = False
         
+        def compare_float(val1, val2, precision=0.0001):
+            """比较两个浮点数是否相等"""
+            if val1 is None and val2 is None:
+                return True
+            if val1 is None or val2 is None:
+                return False
+            try:
+                return abs(float(val1) - float(val2)) < precision
+            except (TypeError, ValueError):
+                return False
+        
         # 地址字段
         if station.get("station_address") and station["station_address"] != existing["station_address"]:
             update_fields.append("station_address = %(station_address)s")
@@ -369,13 +380,13 @@ class ExportToDBAction(BaseAction):
         
         # 92#油价相关字段
         if station.get("oil_92_gun_price") is not None:
-            if existing["oil_92_gun_price"] != station["oil_92_gun_price"]:
+            if not compare_float(existing["oil_92_gun_price"], station["oil_92_gun_price"]):
                 update_fields.append("oil_92_gun_price = %(oil_92_gun_price)s")
                 update_values["oil_92_gun_price"] = station["oil_92_gun_price"]
                 has_price_update = True
         
         if station.get("oil_92_platform_price") is not None:
-            if existing["oil_92_platform_price"] != station["oil_92_platform_price"]:
+            if not compare_float(existing["oil_92_platform_price"], station["oil_92_platform_price"]):
                 update_fields.append("oil_92_platform_price = %(oil_92_platform_price)s")
                 update_values["oil_92_platform_price"] = station["oil_92_platform_price"]
                 has_price_update = True
@@ -389,13 +400,13 @@ class ExportToDBAction(BaseAction):
         
         # 95#油价相关字段
         if station.get("oil_95_gun_price") is not None:
-            if existing["oil_95_gun_price"] != station["oil_95_gun_price"]:
+            if not compare_float(existing["oil_95_gun_price"], station["oil_95_gun_price"]):
                 update_fields.append("oil_95_gun_price = %(oil_95_gun_price)s")
                 update_values["oil_95_gun_price"] = station["oil_95_gun_price"]
                 has_price_update = True
         
         if station.get("oil_95_platform_price") is not None:
-            if existing["oil_95_platform_price"] != station["oil_95_platform_price"]:
+            if not compare_float(existing["oil_95_platform_price"], station["oil_95_platform_price"]):
                 update_fields.append("oil_95_platform_price = %(oil_95_platform_price)s")
                 update_values["oil_95_platform_price"] = station["oil_95_platform_price"]
                 has_price_update = True
@@ -406,6 +417,11 @@ class ExportToDBAction(BaseAction):
             if guns and guns != json.loads(existing["oil_95_guns"] or "[]"):
                 update_fields.append("oil_95_guns = %(oil_95_guns)s")
                 update_values["oil_95_guns"] = station["oil_95_guns"]
+        
+        if "skip_station" in station:
+            if existing.get("skip_station", False) != station["skip_station"]:
+                update_fields.append("skip_station = %(skip_station)s")
+                update_values["skip_station"] = station["skip_station"]
         
         return update_fields, update_values, has_price_update
     
@@ -449,7 +465,7 @@ class ExportToDBAction(BaseAction):
                         WHERE id = :id
                     """
                     cursor.execute(update_sql, update_values)
-                    self.logger.info(f"更新加油站数据: {station['station_name']}")
+                    self.logger.debug(f"更新加油站数据: {station['station_name']}")
                 else:
                     self.logger.info(f"加油站数据无变化: {station['station_name']}")
                     
@@ -478,7 +494,7 @@ class ExportToDBAction(BaseAction):
                     station["oil_95_platform_price"],
                     station["oil_95_guns"]
                 ))
-                self.logger.info(f"插入新加油站: {station['station_name']}")
+                self.logger.debug(f"插入新加油站: {station['station_name']}")
     
     def _execute_mysql(self, conn: mysql.connector.connection.MySQLConnection, stations: List[Dict]) -> None:
         """执行MySQL数据操作"""
@@ -497,6 +513,7 @@ class ExportToDBAction(BaseAction):
                     oil_95_gun_price DECIMAL(10,2),
                     oil_95_platform_price DECIMAL(10,2),
                     oil_95_guns JSON,
+                    skip_station BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     UNIQUE KEY uk_name_address (station_name)
@@ -534,6 +551,11 @@ class ExportToDBAction(BaseAction):
                         """
                         cursor.execute(update_sql, update_values)
                         self.logger.info(f"更新加油站数据: {station['station_name']}")
+                    # 记录变化的字段
+                    for field, value in update_values.items():
+                        if field != 'id':
+                            old_value = existing[field] if field in existing else None
+                            self.logger.debug(f"字段 {field} 变化: {old_value} -> {value}")
                     else:
                         self.logger.info(f"加油站数据无变化: {station['station_name']}")
                     
@@ -559,7 +581,6 @@ class ExportToDBAction(BaseAction):
                     self.logger.info(f"插入新加油站: {station['station_name']}")
             
             conn.commit()
-            self.logger.info(f"成功处理 {len(stations)} 条记录")
             
         except Exception as e:
             self.logger.error(f"MySQL操作失败: {str(e)}")
@@ -570,13 +591,13 @@ class ExportToDBAction(BaseAction):
         """转换数据格式以适应数据库表结构"""
         transformed = []
         for item in raw_data:
-            # 检查必要字段
-            if not item.get("name") or not item.get("address"):
-                self.logger.warning(f"跳过无效数据: 缺少必要字段 name 或 address")
+            # 检查必要字段 - 修改为使用 station_name 而不是 name
+            if not item.get("station_name") or not item.get("address"):
+                self.logger.warning(f"跳过无效数据: 缺少必要字段 station_name 或 address")
                 continue
             
             station = {
-                "station_name": item["name"],
+                "station_name": item["station_name"],
                 "station_address": item["address"],
                 "oil_92_gun_price": self._parse_price(item.get("station_price_92")),
                 "oil_92_platform_price": self._parse_price(item.get("didi_price_92")),
@@ -584,6 +605,7 @@ class ExportToDBAction(BaseAction):
                 "oil_95_gun_price": self._parse_price(item.get("station_price_95")),
                 "oil_95_platform_price": self._parse_price(item.get("didi_price_95")),
                 "oil_95_guns": json.dumps(item.get("gun_numbers_95", []), ensure_ascii=False),
+                "skip_station": item.get("skip_station", False)
             }
             transformed.append(station)
         return transformed
@@ -596,3 +618,35 @@ class ExportToDBAction(BaseAction):
             return float(price_str.replace("油站价¥", "").replace("¥", "").strip())
         except (ValueError, AttributeError):
             return None
+        
+class ValidateVariableAction(BaseAction):
+    """验证变量值是否等于指定值"""
+    
+    def execute(self, params: Dict[str, Any]) -> bool:
+        try:
+            # 获取参数
+            variable_name = params.get('variable')
+            expected_value = params.get('value')
+            save_to = params.get('save_to')
+            
+            if not variable_name:
+                raise ValueError("必须提供 variable 参数")
+            if 'value' not in params:
+                raise ValueError("必须提供 value 参数")
+                
+            # 获取变量当前值
+            current_value = self.bot.get_variable(variable_name)
+            
+            # 比较值是否相等
+            result = current_value == expected_value
+            
+            # 如果指定了save_to，保存结果
+            if save_to:
+                self.bot.set_variable(save_to, result)
+                
+            self.logger.info(f"验证变量 {variable_name}: 当前值={current_value}, 期望值={expected_value}, 结果={result}")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"验证变量值失败: {str(e)}")
+            return False

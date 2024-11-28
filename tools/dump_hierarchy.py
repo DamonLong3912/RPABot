@@ -69,9 +69,7 @@ def dump_hierarchy(device_serial=None):
         output_dir = "hierarchy_dumps"
         os.makedirs(output_dir, exist_ok=True)
         
-        # 生成输出文件名
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = os.path.join(output_dir, f"hierarchy_{timestamp}.xml")
+        output_file = os.path.join(output_dir, f"hierarchy.xml")
         temp_file = "/sdcard/window_dump.xml"
         
         # 执行dump命令，重定向stderr到/dev/null

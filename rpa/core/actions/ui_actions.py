@@ -89,7 +89,6 @@ class ScrollAction(BaseAction):
                 end_y = max(screen_center - half_distance, 100)
                 
                 # 使用UIAutomator2的swipe方法
-                self.logger.debug(f"滑动: ({start_x}, {start_y}) -> ({start_x}, {end_y})")
                 self.ui_animator.swipe(start_x, start_y, start_x, end_y, duration=duration)
                 
             elif direction == 'down':
@@ -98,7 +97,6 @@ class ScrollAction(BaseAction):
                 start_y = max(screen_center - half_distance, 100)
                 end_y = min(screen_center + half_distance, height - 100)
                 
-                self.logger.debug(f"滑动: ({start_x}, {start_y}) -> ({start_x}, {end_y})")
                 self.ui_animator.swipe(start_x, start_y, start_x, end_y, duration=duration)
                 
             else:

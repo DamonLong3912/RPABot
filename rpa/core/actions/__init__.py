@@ -21,7 +21,8 @@ from .data_actions import (
     GetVariableAction,
     GetListItemAction,
     SetTimestampAction,
-    ExportToDBAction
+    ExportToDBAction,
+    ValidateVariableAction
 )
 from .flow_actions import (
     LoopAction,
@@ -77,7 +78,8 @@ ACTION_MAP = {
     'get_list_item_bounds': GetListItemBoundsAction,
     'set_timestamp': SetTimestampAction,
     'break_loop': BreakLoopAction,
-    'continue_loop': ContinueLoopAction
+    'continue_loop': ContinueLoopAction,
+    'validate_variable': ValidateVariableAction
 }
 
 def get_action_class(action_type: str) -> type:
