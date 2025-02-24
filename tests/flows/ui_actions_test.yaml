@@ -2,6 +2,15 @@ name: "UI动作测试用例"
 version: "1.0"
 description: "测试UI相关动作"
 
+# 添加设备配置
+device:
+  # 测试环境使用模拟器
+  serial: "1.2.3.4:5678"
+  # 设备配置参数
+  settings:
+    wait_timeout: 10  # 测试用较短的超时时间
+    click_post_delay: 0.3
+
 variables:
   test_region: [100, 200, 300, 400]
   dynamic_text: "动态文本变量"

@@ -2,6 +2,15 @@ name: "应用动作测试用例"
 version: "1.0"
 description: "测试应用管理相关动作"
 
+# 添加设备配置
+device:
+  # 测试环境使用模拟器
+  serial: "emulator-5554"
+  # 设备配置参数
+  settings:
+    wait_timeout: 10  # 测试用较短的超时时间
+    click_post_delay: 0.3
+
 variables:
   test_package: "com.example.app"
   test_apk_path: "assets/test.apk"

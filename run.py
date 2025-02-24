@@ -25,13 +25,24 @@ def setup_uiautomator2(device_id: str = None) -> bool:
     """安装和初始化UIAutomator2
     
     Args:
-        device_id: 设备ID，如果为None则初始化所有已连接设备
+        device_id: 设备ID，如果为None则直接失败
         
     Returns:
         bool: 初始化是否成功
     """
     logger = get_logger(__name__)
     try:
+        # 设置 adb 路径
+        platform_tools_path = Path(__file__).parent / 'tools' / 'platform-tools'
+        adb_path = platform_tools_path / 'adb.exe'
+        
+        if not adb_path.exists():
+            logger.error(f"ADB工具不存在: {adb_path}")
+            return False
+            
+        # 将 platform-tools 添加到环境变量
+        os.environ['PATH'] = f"{platform_tools_path};{os.environ['PATH']}"
+        
         # 检查设备连接
         if device_id:
             devices = [device_id]
@@ -133,7 +144,19 @@ def clean_temp_directories():
             except Exception as e:
                 logger.warning(f"清理目录 {dir_name} 时出错: {str(e)}")
 
-def main():
+def main(flow_config_path: str):
+    # 加载流程配置
+    with open(flow_config_path, 'r', encoding='utf-8') as f:
+        flow_config = yaml.safe_load(f)
+    
+    # 创建机器人实例，传入流程配置
+    bot = BaseBot(flow_config)
+    
+        
+    # 执行流程
+    bot.run_flow(flow_config)
+
+def run():
     args = parse_args()
     
     # 清理临时目录
@@ -154,23 +177,6 @@ def main():
         logger.info("运行在开发环境模式")
     
     try:
-        # 读取配置文件
-        with open(args.config, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
-        
-        # 获取设备ID
-        device_id = config.get('device', {}).get('ip')
-        
-        # 如果指定了初始化设备
-        if args.init_device:
-            logger.info("开始初始化设备UIAutomator2环境...")
-            if not setup_uiautomator2(device_id):
-                logger.error("设备初始化失败")
-                return
-            logger.info("设备初始化完成")
-            if not args.flow:
-                return  # 如果只是初始化设备，到这里就可以结束了
-        
         # 读取流程配置文件
         flow_path = Path(args.flow)
         if not flow_path.is_absolute():
@@ -185,21 +191,34 @@ def main():
         logger.info(f"流程版本: {flow_config.get('version')}")
         logger.info(f"流程描述: {flow_config.get('description')}")
         
-        # 初始化机器人，传入配置文件路径
-        bot = BaseBot(config_path=args.config, debug=args.debug)
+
+        logger.info("开始初始化设备UIAutomator2环境...")
+        # 从flow配置中获取设备信息
+        device_config = flow_config.get('device', {})
+        device_id = device_config.get('ip') or device_config.get('serial')
+        
+        if not device_id:
+            logger.error("未指定设备IP或序列号")
+            return
+        
+        if not setup_uiautomator2(device_id):
+            logger.error("设备初始化失败")
+            return
+        logger.info("设备初始化完成")
+        if not args.flow:
+            return
         
         # 执行流程
         logger.info(f"开始执行流程: {flow_config.get('name', '未命名流程')}")
-        bot.run_flow(flow_config)
+        main(flow_path)
         logger.info("流程执行完成")
         
     except Exception as e:
         logger.error(f"执行出错: {str(e)}")
         if args.dev:
-            # 开发模式下打印完整堆栈
             import traceback
             logger.error(traceback.format_exc())
         raise
 
 if __name__ == '__main__':
-    main() 
+    run() 

@@ -2,6 +2,18 @@ name: "滴滴加油APK安装注册"
 description: "自动安装滴滴加油并完成注册"
 version: "1.0"
 
+# 添加设备配置
+device:
+  # 可以是序列号或 IP 地址
+  serial: "127.0.0.1:5555"  
+  # 或者使用 IP 连接
+  # ip: "192.168.1.100:5555"
+  
+  # 可选的设备配置
+  settings:
+    wait_timeout: 20  # 等待超时时间
+    click_post_delay: 0.5  # 点击后延迟
+    
 prerequisites:
   app:
     package: "com.didi.oil"
@@ -57,7 +69,7 @@ steps:
           action: "click_first"
           priority: 1
         - name: "位置权限"
-          patterns: ["仅在使用中允许", "是否允许“滴滴加油”获取模糊定位"]
+          patterns: ["仅在使用中允许", "是否允许"滴滴加油"获取模糊定位"]
           action: "click_first"
           priority: 1
 
