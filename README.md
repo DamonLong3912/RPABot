@@ -96,7 +96,12 @@ version: "1.0"
 device:
   ip: "172.16.1.9:39847"  # 设备IP:端口, 或device_id
 
-# 前置条件
+# yaml全局参数，此处可从API中获取替换
+variables:
+  var1: "手机"
+  var2: "手机2"   
+
+# 前置条件 一般用作安装应用 可跳过
 prerequisites:
   app:
     package: "com.example.app"

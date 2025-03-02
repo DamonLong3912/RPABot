@@ -38,7 +38,8 @@ from .app_actions import (
     StartAppAction,
     WaitForAppInstalledAction,
     TaobaoSearchAction,
-    ReturnToHomeAction
+    ReturnToHomeAction,
+    TaobaoPayListAction
 )
 from .node_actions import (
     GetNodeDescendantsContentAction, 
@@ -83,7 +84,8 @@ ACTION_MAP = {
     'continue_loop': ContinueLoopAction,
     'validate_variable': ValidateVariableAction,
     'TaobaoSearchAction': TaobaoSearchAction,
-    'ReturnToHomeAction': ReturnToHomeAction
+    'ReturnToHomeAction': ReturnToHomeAction,
+    'TaobaoPayListAction': TaobaoPayListAction
 }
 
 def get_action_class(action_type: str) -> type:

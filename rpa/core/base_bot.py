@@ -47,6 +47,7 @@ class BaseBot:
         self.screenshot_helper = ScreenshotHelper(self.device_ip)
         self.ocr_helper = OCRHelper()
 
+        self.variables = self.config.get('variables', {})
         
     def _init_device(self):
         """初始化设备连接"""
@@ -163,7 +164,6 @@ class BaseBot:
                     self.logger.info(f"跳过步骤: {step.get('name')}")
                     continue
                 
-
                 self._execute_step(step, self.current_step_index)  # 使用步骤执行监听器执行步骤
                 self.current_step_index += 1  # 每个步骤执行后递增序号
                 # 记录已完成步骤
@@ -192,9 +192,13 @@ class BaseBot:
             #     self.logger.info(f"跳过步骤 {step_name}: 条件不满足")
             #     return
             
+            # 处理步骤参数中的变量
+            if 'params' in step:
+                params = step['params']
+                for key, value in params.items():
+                    params[key] = self._resolve_variable(value)
 
             action_name = step.get('action')
-            action_params = step.get('params', {})
             self.logger.info(f"执行步骤: {step.get('name')} (步骤索引: {step_index})")
 
             # 使用 get_action_class 获取动作类
@@ -206,7 +210,7 @@ class BaseBot:
                 setattr(self, action_cache_name, action_class(self))
                 
             action = getattr(self, action_cache_name)
-            action.execute(action_params)
+            action.execute(params)
 
         except Exception as e:
             self.logger.error(f"步骤 {step.get('name')} 执行失败: {str(e)}")
@@ -288,14 +292,13 @@ class BaseBot:
             self._variables = {}
         self._variables[name] = value
 
-
     def notify_failure(self, step_name: str, error_message: str, step_index: int) -> None:
         """通过飞书发送通知"""
         message = {
             "msg_type": "text",
             "content": {
                 "text": f"任务: '{self.flow_name}'\n"
-                            f"应用: '{self.app_name}'\n"
+                            f"描述: '{self.config.get('description')}'\n"
                             f"步骤 '{step_name}' (索引: {step_index}) 执行失败: {error_message}"
             }
         }

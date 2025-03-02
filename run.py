@@ -132,29 +132,9 @@ def load_config(config_path: str) -> Dict[str, Any]:
 
 def main(flow_config: Dict[str, Any], device_ip: str, start_step_index: int = 0):
     logger = get_logger(__name__)
-    db = DatabaseManager()
     
     try:
-        args = parse_args()
-        # 加载全局配置
-        global_config = load_config(args.config or 'config.yaml')
-        # 合并全局配置和流程配置
-        flow_config.update(global_config)
-
-        # 获取数据库配置，使用合并到flow中的全局配置
-        db_config = flow_config.get('database')
-        if db_config:
-            try:
-                db.connect(db_config)
-                # 记录成功结果
-                db.insert_flow_result(
-                    flow_config.get('name', 'unknown'),
-                    'success'
-                )
-            except Exception as e:
-                logger.error(f"数据库操作失败: {str(e)}")
-                # 继续执行流程，忽略数据库错误
-        
+  
         # 直接使用传入的设备IP创建机器人实例
         bot = BaseBot(flow_config, device_ip)
         
@@ -168,16 +148,9 @@ def main(flow_config: Dict[str, Any], device_ip: str, start_step_index: int = 0)
         # 将异常任务的设备加入监控 
         DeviceManager().add_error_task_device(device_ip)
         raise
-    finally:
-        # 断开数据库连接
-        try:
-            db.disconnect()
-        except Exception:
-            pass
 
 def run():
     args = parse_args()
-    
     
     # 清理临时目录
     clean_temp_directories()
@@ -196,6 +169,9 @@ def run():
         setup_dev_env()
         logger.info("运行在开发环境模式")
     
+    # 初始化数据库连接
+    DatabaseManager.init_from_config(args.config or 'config.yaml')
+    
     # 如果是API模式，启动服务器
     if args.api:
         from rpa.api.server import start_server
@@ -207,6 +183,8 @@ def run():
     if not args.flow:
         logger.error("未指定流程配置文件")
         return
+
+
         
     try:
         # 读取流程配置文件
@@ -223,7 +201,15 @@ def run():
         logger.info(f"流程名称: {flow_config.get('name')}")
         logger.info(f"流程版本: {flow_config.get('version')}")
         logger.info(f"流程描述: {flow_config.get('description')}")
-        
+
+
+
+        # 加载全局配置
+        global_config = load_config(args.config or 'config.yaml')
+        # 合并全局配置和流程配置
+        flow_config.update(global_config)
+
+
         # 从flow配置中获取设备信息
         device_config = flow_config.get('device', {})
         device_ids = device_config.get('ip')

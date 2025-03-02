@@ -212,9 +212,26 @@ class TaobaoSearchAction(BaseAction):
         
         try:
             logger.info(f"等待搜索框出现...")
-            if  self.ui_animator(className="android.view.View", description="搜索栏").wait(timeout=10):
-                logger.info(f"点击淘宝搜索框并输入内容: {search_text}")
+            if self.ui_animator(className="android.view.View", description="搜索栏").wait(timeout=10):
                 self.ui_animator(className="android.view.View", description="搜索栏").click()
+                
+                # 输入搜索内容
+                if self.ui_animator(className="android.widget.EditText", resourceId="com.taobao.taobao:id/searchEdit").wait(timeout=5):
+                    self.ui_animator(className="android.widget.EditText", resourceId="com.taobao.taobao:id/searchEdit").click()
+                    self.ui_animator(className="android.widget.EditText", resourceId="com.taobao.taobao:id/searchEdit").send_keys(search_text)
+                # 点击搜索按钮
+                if self.ui_animator(text="搜索").wait(timeout=5):
+                    self.ui_animator(text="搜索").click()
+                else:
+                    raise ValueError("搜索按钮未在规定时间内出现")
+                
+
+                if self.ui_animator(text="立即购买").wait(timeout=5):
+                    pass
+                else:
+                    raise ValueError("立即购买未在规定时间内出现")
+    
+
             else:
                 logger.error("搜索框未在规定时间内出现")
                 raise ValueError("搜索框未在规定时间内出现")
@@ -223,7 +240,7 @@ class TaobaoSearchAction(BaseAction):
             logger.error(f"搜索操作失败: {str(e)}")
         except Exception as e:
             logger.error(f"搜索操作失败: {str(e)}")
-            raise ValueError("搜索框未在规定时间内出现")
+            raise
         
     def back_until(self, interval=1, max_times=10):
         """返回首页"""
@@ -242,6 +259,29 @@ class TaobaoSearchAction(BaseAction):
                     break
             else:
                 break
+
+
+class TaobaoPayListAction(BaseAction):
+    """淘宝支付列表操作动作"""
+    
+    def execute(self, params: Dict[str, Any]) -> None:
+        pay_status = params.get('pay_status')
+        pay_list = params.get('pay_list')
+        self.ui_animator(text="立即购买").click()
+        #pay_list的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
+        pay_list = pay_list.split(',')
+        for item in pay_list:
+            pay_list2 = item.split(':')
+            if '星巴克' in pay_status:
+                self.ui_animator(text=pay_list2[0]).click()
+                self.ui_animator(text=pay_list2[1]).click()
+ 
+
+
+
+
+
+
 
 class ReturnToHomeAction(BaseAction):
     """返回应用首页动作"""

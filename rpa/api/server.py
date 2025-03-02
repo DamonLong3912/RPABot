@@ -8,6 +8,8 @@ import traceback
 import yaml
 import os
 import glob  # 新增导入
+from rpa.utils.db import DatabaseManager 
+from run import load_config
 
 app = Flask(__name__)
 logger = get_logger(__name__)
@@ -31,6 +33,10 @@ def run_flow(flow_config: Dict[str, Any], task_id: str, device_ip: str, start_st
     from run import setup_uiautomator2, main
     
     try:
+        # # 记录变量信息到日志
+        # if 'variables' in flow_config:
+        #     logger.info(f"流程变量: {flow_config['variables']}")
+        
         # 检查是否有已存储的任务标识
         if task_id in running_tasks:
             # 历史任务应该加一执行
@@ -75,7 +81,12 @@ def start_flow():
     {
         "flow_path": "flows/test.yaml",
         "task_id": "unique_task_id",  // 可选
-        "start_step_index": 0          // 可选，默认从0开始
+        "start_step_index": 0,         // 可选，默认从0开始
+        "variables": {                 // 可选，流程变量
+            "var1": "新手机",
+            "var2": "平板电脑",
+            "var3": "自定义值"
+        }
     }
     """
     global running_tasks  # 声明使用全局的 running_tasks
@@ -83,7 +94,8 @@ def start_flow():
         data = request.get_json()
         flow_path = data.get('flow_path')
         task_id = data.get('task_id', str(threading.get_ident()))
-        start_step_index = data.get('start_step_index', 0)  # 接收开始步骤索引
+        start_step_index = data.get('start_step_index', 0)
+        variables = data.get('variables', {})  # 获取传入的变量
         
         if not flow_path:
             return jsonify({
@@ -127,6 +139,15 @@ def start_flow():
         with open(flow_file, 'r', encoding='utf-8') as f:
             flow_config = yaml.safe_load(f)
             
+        # 合并API传入的变量到流程配置中
+        if variables:
+            # 如果YAML中没有variables部分，先创建
+            if 'variables' not in flow_config:
+                flow_config['variables'] = {}
+            # 合并变量，API传入的变量优先级更高
+            flow_config['variables'].update(variables)
+            logger.info(f"已合并API传入的变量: {variables}")
+        
         # 创建新线程运行流程
         thread = threading.Thread(
             target=run_flow,
@@ -223,5 +244,8 @@ def start_server(host='0.0.0.0', port=5000):
                     device_manager.register_devices(device_ids)
         except Exception as e:
             logger.error(f"加载设备配置失败: {str(e)}")
+    
+    # 初始化数据库连接 - 如果在run.py中已经初始化，这里可以省略
+    # DatabaseManager.init_from_config('config.yaml')
     
     app.run(host=host, port=port) 
