@@ -2,6 +2,12 @@ name: "加油站信息获取测试"
 version: "1.0"
 description: "测试获取单个加油站的详细信息"
 
+# 添加设备配置
+device:
+  ip: ""
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
 variables:
   test_results: []
 

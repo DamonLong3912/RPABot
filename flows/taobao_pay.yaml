@@ -1,0 +1,33 @@
+name: "淘宝购物测试"
+app_name: "淘宝"
+version: "1.0"
+description: "打开手机淘宝并搜索指定内容"
+
+# 添加设备配置
+device:
+  ip: "192.168.0.102:5678"
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
+
+variables:
+  search_content: "手机"  # 指定搜索内容
+
+steps:
+  - name: "打开淘宝"
+    action: "start_app"
+    params:
+      package: "com.taobao.taobao"
+
+  - name: "返回首页"
+    action: ReturnToHomeAction
+    params:
+      home_indicator: "搜索栏"  # 这里替换为实际的首页标识
+
+  - action: TaobaoSearchAction
+    name: "搜索内容"
+    params:
+      search_text: "${search_content}"  # 使用变量
+
+
+

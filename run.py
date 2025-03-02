@@ -10,22 +10,30 @@ from rpa.utils.logger import setup_logger, get_logger
 import subprocess
 import uiautomator2 as u2
 import time
+from rpa.utils.device_manager import DeviceManager
+from typing import Dict, Any
+import threading
+from rpa.utils.db import DatabaseManager
 
 def parse_args():
     parser = argparse.ArgumentParser(description='RPA Framework 运行器')
-    parser.add_argument('--flow', '-f', required=True, help='流程配置文件路径')
+    parser.add_argument('--flow', '-f', help='流程配置文件路径')
     parser.add_argument('--config', default='config.yaml', help='全局配置文件路径')
     parser.add_argument('--debug', '-d', action='store_true', help='启用调试模式')
     parser.add_argument('--dev', action='store_true', help='开发环境模式')
     parser.add_argument('--log', '-l', default='run.log', help='日志文件路径')
+    parser.add_argument('--api', action='store_true', help='启动API服务')
+    parser.add_argument('--host', default='0.0.0.0', help='API服务监听地址')
+    parser.add_argument('--port', type=int, default=5000, help='API服务端口')
     parser.add_argument('--init-device', action='store_true', help='初始化设备UIAutomator2环境')
+    parser.add_argument('--start-step-index', type=int, help='开始步骤索引')
     return parser.parse_args()
 
-def setup_uiautomator2(device_id: str = None) -> bool:
+def setup_uiautomator2(device_ip: str) -> bool:
     """安装和初始化UIAutomator2
     
     Args:
-        device_id: 设备ID，如果为None则直接失败
+        device_ip: 设备IP
         
     Returns:
         bool: 初始化是否成功
@@ -43,60 +51,28 @@ def setup_uiautomator2(device_id: str = None) -> bool:
         # 将 platform-tools 添加到环境变量
         os.environ['PATH'] = f"{platform_tools_path};{os.environ['PATH']}"
         
-        # 检查设备连接
-        if device_id:
-            devices = [device_id]
-        else:
-            # 获取所有已连接设备
-            result = subprocess.run(['adb', 'devices'], 
-                                 capture_output=True, 
-                                 text=True,
-                                 check=True)
-            devices = []
-            for line in result.stdout.split('\n')[1:]:
-                if line.strip() and '\tdevice' in line:
-                    devices.append(line.split('\t')[0])
-
-        if not devices:
-            logger.error("未找到已连接的设备")
-            return False
-
-        for device in devices:
-            logger.info(f"正在初始化设备 {device}")
+        logger.info(f"正在初始化设备 {device_ip}")
+        
+        # 使用 u2.connect()
+        d = u2.connect(device_ip)
+        try:
+            # 检查ATX应用是否已安装
+            atx_package = "com.github.uiautomator"
+            app_info = d.app_info(atx_package)
             
-            # 使用 u2.connect()
-            d = u2.connect(device)
-            try:
-                if not d.service("uiautomator").running():
-                    # 安装UIAutomator2
-                    logger.info("正在安装UIAutomator2服务...")
-                    d.service("uiautomator").start()
-                    # 等待服务启动
-                    time.sleep(2)
-                    
+            if not app_info:
                 # 安装ATX应用
                 logger.info("正在安装ATX代理应用...")
                 d.app_install("https://github.com/openatx/android-uiautomator-server/releases/latest/download/app-uiautomator.apk")
-                
-                # 启动UIAutomator2服务
-                logger.info("正在启动UIAutomator2服务...")
-                d.service("uiautomator").start()
-                
-                # 等待服务就绪
-                for _ in range(10):
-                    if d.service("uiautomator").running():
-                        logger.info(f"设备 {device} UIAutomator2服务已就绪")
-                        break
-                    time.sleep(1)
-                else:
-                    raise RuntimeError("UIAutomator2服务启动超时")
-                
-            except Exception as e:
-                logger.error(f"初始化设备 {device} 失败: {str(e)}")
-                return False
-
-        return True
-        
+            else:
+                logger.info("ATX代理应用已安装，版本：" + str(app_info.get('versionName', 'unknown')))
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"初始化设备 {device_ip} 失败: {str(e)}")
+            return False
+            
     except Exception as e:
         logger.error(f"设置UIAutomator2失败: {str(e)}")
         return False
@@ -144,20 +120,64 @@ def clean_temp_directories():
             except Exception as e:
                 logger.warning(f"清理目录 {dir_name} 时出错: {str(e)}")
 
-def main(flow_config_path: str):
-    # 加载流程配置
-    with open(flow_config_path, 'r', encoding='utf-8') as f:
-        flow_config = yaml.safe_load(f)
+def load_config(config_path: str) -> Dict[str, Any]:
+    """加载配置文件"""
+    logger = get_logger(__name__)
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f) or {}
+    except Exception as e:
+        logger.warnin(f"加载配置文件失败: {str(e)}")
+        return {}
+
+def main(flow_config: Dict[str, Any], device_ip: str, start_step_index: int = 0):
+    logger = get_logger(__name__)
+    db = DatabaseManager()
     
-    # 创建机器人实例，传入流程配置
-    bot = BaseBot(flow_config)
-    
+    try:
+        args = parse_args()
+        # 加载全局配置
+        global_config = load_config(args.config or 'config.yaml')
+        # 合并全局配置和流程配置
+        flow_config.update(global_config)
+
+        # 获取数据库配置，使用合并到flow中的全局配置
+        db_config = flow_config.get('database')
+        if db_config:
+            try:
+                db.connect(db_config)
+                # 记录成功结果
+                db.insert_flow_result(
+                    flow_config.get('name', 'unknown'),
+                    'success'
+                )
+            except Exception as e:
+                logger.error(f"数据库操作失败: {str(e)}")
+                # 继续执行流程，忽略数据库错误
         
-    # 执行流程
-    bot.run_flow(flow_config)
+        # 直接使用传入的设备IP创建机器人实例
+        bot = BaseBot(flow_config, device_ip)
+        
+        # 执行流程
+        bot.run_flow(flow_config, start_step_index)
+
+        # 释放设备
+        DeviceManager().release_device(device_ip)
+        
+    except Exception as e:
+        # 将异常任务的设备加入监控 
+        DeviceManager().add_error_task_device(device_ip)
+        raise
+    finally:
+        # 断开数据库连接
+        try:
+            db.disconnect()
+        except Exception:
+            pass
 
 def run():
     args = parse_args()
+    
     
     # 清理临时目录
     clean_temp_directories()
@@ -176,6 +196,18 @@ def run():
         setup_dev_env()
         logger.info("运行在开发环境模式")
     
+    # 如果是API模式，启动服务器
+    if args.api:
+        from rpa.api.server import start_server
+        logger.info(f"启动API服务 {args.host}:{args.port}")
+        start_server(args.host, args.port)
+        return
+        
+    # 否则执行单个流程
+    if not args.flow:
+        logger.error("未指定流程配置文件")
+        return
+        
     try:
         # 读取流程配置文件
         flow_path = Path(args.flow)
@@ -185,34 +217,42 @@ def run():
         logger.info(f"加载流程配置文件: {flow_path}")
         with open(flow_path, 'r', encoding='utf-8') as f:
             flow_config = yaml.safe_load(f)
-            
+        
+        
         # 打印流程信息
         logger.info(f"流程名称: {flow_config.get('name')}")
         logger.info(f"流程版本: {flow_config.get('version')}")
         logger.info(f"流程描述: {flow_config.get('description')}")
         
-
-        logger.info("开始初始化设备UIAutomator2环境...")
         # 从flow配置中获取设备信息
         device_config = flow_config.get('device', {})
-        device_id = device_config.get('ip') or device_config.get('serial')
+        device_ids = device_config.get('ip')
         
-        if not device_id:
-            logger.error("未指定设备IP或序列号")
+        if not device_ids:
+            logger.error("未指定设备IP")
             return
-        
-        if not setup_uiautomator2(device_id):
-            logger.error("设备初始化失败")
-            return
-        logger.info("设备初始化完成")
-        if not args.flow:
-            return
-        
-        # 执行流程
-        logger.info(f"开始执行流程: {flow_config.get('name', '未命名流程')}")
-        main(flow_path)
-        logger.info("流程执行完成")
-        
+            
+        try:
+            device_ids = [ip.strip() for ip in device_ids.split(',') if ip.strip()]
+            # 只初始化要使用的设备
+            logger.info("开始初始化设备UIAutomator2环境...")
+            if not setup_uiautomator2(device_ids[0]):
+                logger.error("设备初始化失败")
+                return
+            logger.info("设备初始化完成")
+            
+            if not args.flow:
+                return
+            
+            # 执行流程，传入配置对象
+            logger.info(f"开始执行流程: {flow_config.get('name', '未命名流程')}")
+            start_step_index = args.start_step_index if args.start_step_index is not None else 0
+            main(flow_config, device_ids[0], start_step_index)
+            logger.info("流程执行完成")
+            
+        except Exception as e:
+            raise
+            
     except Exception as e:
         logger.error(f"执行出错: {str(e)}")
         if args.dev:

@@ -4,15 +4,10 @@ version: "1.0"
 
 # 添加设备配置
 device:
-  # 可以是序列号或 IP 地址
-  serial: "127.0.0.1:5555"  
-  # 或者使用 IP 连接
-  # ip: "192.168.1.100:5555"
-  
-  # 可选的设备配置
+  ip: ""
   settings:
-    wait_timeout: 20  # 等待超时时间
-    click_post_delay: 0.5  # 点击后延迟
+    wait_timeout: 10
+    click_post_delay: 0.3
     
 prerequisites:
   app:
@@ -69,7 +64,7 @@ steps:
           action: "click_first"
           priority: 1
         - name: "位置权限"
-          patterns: ["仅在使用中允许", "是否允许"滴滴加油"获取模糊定位"]
+          patterns: ["仅在使用中允许", "是否允许\"滴滴加油\"获取模糊定位"]
           action: "click_first"
           priority: 1
 

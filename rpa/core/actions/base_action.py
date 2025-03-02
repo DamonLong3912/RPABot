@@ -6,6 +6,7 @@ import yaml
 import numpy as np
 from ...utils.logger import get_logger
 import subprocess
+import uiautomator2 as u2
 
 class BaseAction:
     """动作基类"""
@@ -21,7 +22,7 @@ class BaseAction:
         
         # 添加UIAnimator2引用
         if hasattr(bot, 'ui_animator'):
-            self.ui_animator = bot.ui_animator
+            self.ui_animator: u2.Device = bot.ui_animator
         if hasattr(bot, 'ocr_helper'):
             self.ocr_helper = bot.ocr_helper
         if hasattr(bot, 'screenshot_helper'):

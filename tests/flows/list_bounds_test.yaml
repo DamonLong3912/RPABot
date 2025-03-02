@@ -2,6 +2,12 @@ name: "列表bounds获取和循环点击测试"
 version: "1.0"
 description: "测试获取列表项bounds并循环点击的功能"
 
+# 添加设备配置
+device:
+  ip: ""
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
 variables:
   max_scroll_times: 3
 

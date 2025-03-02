@@ -101,8 +101,9 @@ class VerifyAppInstalledAction(BaseAction):
         return False
 
 class StartAppAction(BaseAction):
+
+
     """启动应用动作"""
-    
     def execute(self, params: Dict[str, Any]) -> bool:
         package = params.get('package')
         max_retries = params.get('max_retries', 5)
@@ -126,45 +127,9 @@ class StartAppAction(BaseAction):
                 logger.error(f"应用 {package} 未安装，无法启动")
                 return False
             
-            for attempt in range(max_retries):
-                logger.info(f"第 {attempt + 1}/{max_retries} 次尝试启动应用")
-                
-                start_cmd = [
-                    'adb', '-s', self.device_id, 'shell',
-                    'am', 'start',
-                    '-W',  # 等待启动完成
-                    '-n', f"{package}/.page.launch.LocalLauncherActivity"
-                ]
-                
-                logger.debug(f"执行启动命令: {' '.join(start_cmd)}")
-                result = subprocess.run(
-                    start_cmd,
-                    capture_output=True,
-                    text=True,
-                    check=True
-                )
-                
-                if "Status: ok" in result.stdout and "LaunchState: COLD" in result.stdout:
-                    logger.info(f"应用 {package} 启动成功")
-                    time.sleep(2)
-                    return True
-                    
-                if attempt < max_retries - 1:
-                    logger.warning(f"启动未成功，{retry_interval}秒后重试...")
-                    try:
-                        subprocess.run(
-                            ['adb', '-s', self.device_id, 'shell', 'am', 'force-stop', package],
-                            check=True,
-                            capture_output=True
-                        )
-                        logger.debug("已强制停止应用")
-                    except subprocess.CalledProcessError as e:
-                        logger.warning(f"强制停止应用失败: {str(e)}")
-                    
-                    time.sleep(retry_interval)
-                else:
-                    logger.error("达到最大重试次数，启动失败")
-                    return False
+            self.bot.ui_animator.app_start(package)
+            
+
                     
         except subprocess.CalledProcessError as e:
             logger.error(f"启动应用失败: {str(e)}")
@@ -232,3 +197,74 @@ class WaitForAppInstalledAction(BaseAction):
             
         logger.error(f"等待应用安装超时({timeout}秒)")
         return False 
+
+class TaobaoSearchAction(BaseAction):
+    """淘宝搜索框操作动作"""
+    
+    def execute(self, params: Dict[str, Any]) -> None:
+        search_text = params.get('search_text')
+        
+        if not search_text:
+            raise ValueError("必须提供search_text参数")
+
+        
+        self.back_until()
+        
+        try:
+            logger.info(f"等待搜索框出现...")
+            if  self.ui_animator(className="android.view.View", description="搜索栏").wait(timeout=10):
+                logger.info(f"点击淘宝搜索框并输入内容: {search_text}")
+                self.ui_animator(className="android.view.View", description="搜索栏").click()
+            else:
+                logger.error("搜索框未在规定时间内出现")
+                raise ValueError("搜索框未在规定时间内出现")
+        
+        except subprocess.CalledProcessError as e:
+            logger.error(f"搜索操作失败: {str(e)}")
+        except Exception as e:
+            logger.error(f"搜索操作失败: {str(e)}")
+            raise ValueError("搜索框未在规定时间内出现")
+        
+    def back_until(self, interval=1, max_times=10):
+        """返回首页"""
+        d = self.ui_animator
+        current = 1
+        while True:
+            if not self.ui_animator(className="android.view.View", description='搜索栏'):
+                if self.ui_animator(className="android.view.View", resourceId="com.taobao.taobao:id/poplayer_native_state_id"):
+                    self.ui_animator(className="android.view.View", resourceId="com.taobao.taobao:id/poplayer_native_state_id").click()
+                # logger.info("press back")
+                d.press("back")
+                time.sleep(interval)
+                current += 1
+                if current > max_times:
+                    logger.info("reach max times")
+                    break
+            else:
+                break
+
+class ReturnToHomeAction(BaseAction):
+    """返回应用首页动作"""
+    
+    def execute(self, params: Dict[str, Any]) -> None:
+        home_indicator = params.get('home_indicator')  # 用于判断是否在首页的标识
+        
+        if not home_indicator:
+            raise ValueError("必须提供home_indicator参数")
+        
+        self.back_until(lambda: self.ui_animator(className="android.view.View", description=home_indicator))
+
+    def back_until(self, func, interval=1, max_times=10):
+        d = self.ui_animator
+        current = 1
+        while True:
+            if not func():
+                logger.info("press back")
+                d.press("back")
+                time.sleep(interval)
+                current += 1
+                if current > max_times:
+                    logger.info("reach max times")
+                    break
+            else:
+                break

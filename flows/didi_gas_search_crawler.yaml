@@ -2,6 +2,14 @@ name: "滴滴加油站搜索爬虫"
 description: "搜索不同地理位置的加油站信息"
 version: "1.0"
 
+
+# 添加设备配置
+device:
+  ip: ""
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
+
 variables:
   station_data: []
   station_name_history: []

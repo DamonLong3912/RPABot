@@ -36,7 +36,9 @@ from .app_actions import (
     CheckAndInstallAppAction,
     VerifyAppInstalledAction,
     StartAppAction,
-    WaitForAppInstalledAction
+    WaitForAppInstalledAction,
+    TaobaoSearchAction,
+    ReturnToHomeAction
 )
 from .node_actions import (
     GetNodeDescendantsContentAction, 
@@ -79,7 +81,9 @@ ACTION_MAP = {
     'set_timestamp': SetTimestampAction,
     'break_loop': BreakLoopAction,
     'continue_loop': ContinueLoopAction,
-    'validate_variable': ValidateVariableAction
+    'validate_variable': ValidateVariableAction,
+    'TaobaoSearchAction': TaobaoSearchAction,
+    'ReturnToHomeAction': ReturnToHomeAction
 }
 
 def get_action_class(action_type: str) -> type:

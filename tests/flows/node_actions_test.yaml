@@ -2,6 +2,12 @@ name: "节点动作测试用例"
 version: "1.0"
 description: "测试节点相关动作"
 
+# 添加设备配置
+device:
+  ip: ""
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
 steps:
   - name: "测试通过路径获取价格"
     action: "get_node_by_path"

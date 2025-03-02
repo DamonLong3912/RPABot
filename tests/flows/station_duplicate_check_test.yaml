@@ -2,6 +2,12 @@ name: "加油站重复检查测试"
 version: "1.0"
 description: "测试加油站名称重复检查功能"
 
+# 添加设备配置
+device:
+  ip: ""
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
 variables:
   visited_station_names: []
   test_bounds_list: []

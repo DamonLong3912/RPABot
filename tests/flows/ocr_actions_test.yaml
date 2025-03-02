@@ -2,6 +2,12 @@ name: "OCR动作测试用例"
 version: "1.0"
 description: "测试OCR相关动作"
 
+# 添加设备配置
+device:
+  ip: ""
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
 variables:
   target_text: "测试文本"
   screenshot_region: [0, 0, 1080, 2400]
