@@ -15,7 +15,7 @@ from rpa.core.actions import get_action_class  # 导入获取动作类的函数
 class BaseBot:
     """RPA基础机器人类"""
     
-    def __init__(self, flow_config: str, device_ip: str, webhook_url: str=None):
+    def __init__(self, flow_config: str, device_ip: str, task_id: str=None):
         self.webhook_url="https://open.feishu.cn/open-apis/bot/v2/hook/85bd3382-5ceb-4e23-af7d-4ea1296ec598"
         self.device_ip = device_ip
         self.device_id = device_ip
@@ -47,7 +47,11 @@ class BaseBot:
         self.screenshot_helper = ScreenshotHelper(self.device_ip)
         self.ocr_helper = OCRHelper()
 
+       # 参数
         self.variables = self.config.get('variables', {})
+
+       # 任务id，主要用作发送飞书通知
+        self.task_id = task_id
         
     def _init_device(self):
         """初始化设备连接"""
@@ -298,7 +302,8 @@ class BaseBot:
             "msg_type": "text",
             "content": {
                 "text": f"任务: '{self.flow_name}'\n"
-                            f"描述: '{self.config.get('description')}'\n"
+                f"流程ID: '{self.task_id}'\n"
+                            f"描述: '{self.config.get('description','')}'\n"
                             f"步骤 '{step_name}' (索引: {step_index}) 执行失败: {error_message}"
             }
         }

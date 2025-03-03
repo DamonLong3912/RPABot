@@ -130,13 +130,13 @@ def load_config(config_path: str) -> Dict[str, Any]:
         logger.warnin(f"加载配置文件失败: {str(e)}")
         return {}
 
-def main(flow_config: Dict[str, Any], device_ip: str, start_step_index: int = 0):
+def main(flow_config: Dict[str, Any], device_ip: str, start_step_index: int = 0,task_id=None):
     logger = get_logger(__name__)
     
     try:
   
         # 直接使用传入的设备IP创建机器人实例
-        bot = BaseBot(flow_config, device_ip)
+        bot = BaseBot(flow_config, device_ip,task_id)
         
         # 执行流程
         bot.run_flow(flow_config, start_step_index)

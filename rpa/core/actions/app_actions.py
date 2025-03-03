@@ -282,7 +282,6 @@ class TaobaoPayListAction(BaseAction):
                     self.ui_animator(className="android.view.View", description="提交订单").click()
                     if not self.ui_animator(resourceId="com.taobao.taobao:id/render_container").wait(timeout=20):
                         raise ValueError("疑似未支付成功")
-
                 else:
                    raise ValueError("确认订单页面未能成功点击提交订单按钮")
                 

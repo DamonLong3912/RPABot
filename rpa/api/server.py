@@ -43,7 +43,7 @@ def run_flow(flow_config: Dict[str, Any], task_id: str, device_ip: str, start_st
             start_step_index += 1
             logger.info(f"恢复任务 {task_id} 的执行，从步骤 {start_step_index} 开始")
             # 继续执行后续步骤
-            main(flow_config, device_ip, start_step_index)
+            main(flow_config, device_ip, start_step_index,task_id)
             return
         else:
             # 否则保存任务
@@ -60,7 +60,7 @@ def run_flow(flow_config: Dict[str, Any], task_id: str, device_ip: str, start_st
         
         # 执行流程
         logger.info(f"开始执行流程: {flow_config.get('name', '未命名流程')}")
-        main(flow_config, device_ip, start_step_index)
+        main(flow_config, device_ip, start_step_index,task_id)
         logger.info("流程执行完成")
 
                 # 清理任务记录
