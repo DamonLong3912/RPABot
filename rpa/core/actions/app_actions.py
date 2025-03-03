@@ -202,6 +202,7 @@ class TaobaoSearchAction(BaseAction):
     """淘宝搜索框操作动作"""
     
     def execute(self, params: Dict[str, Any]) -> None:
+        time.sleep(2)
         search_text = params.get('search_text')
         
         if not search_text:
@@ -262,20 +263,46 @@ class TaobaoSearchAction(BaseAction):
 
 
 class TaobaoPayListAction(BaseAction):
-    """淘宝支付列表操作动作"""
+    """淘宝选购商品支付操作动作"""
     
     def execute(self, params: Dict[str, Any]) -> None:
         pay_status = params.get('pay_status')
         pay_list = params.get('pay_list')
-        self.ui_animator(text="立即购买").click()
         #pay_list的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
         pay_list = pay_list.split(',')
         for item in pay_list:
+            self.back_until()
+            self.ui_animator(className="android.widget.TextView", text='立即购买').click()
             pay_list2 = item.split(':')
             if '星巴克' in pay_status:
                 self.ui_animator(text=pay_list2[0]).click()
                 self.ui_animator(text=pay_list2[1]).click()
- 
+                self.ui_animator(className="android.widget.LinearLayout", description="确认").click()
+                if self.ui_animator(className="android.view.View", description="提交订单").wait(timeout=5):
+                    self.ui_animator(className="android.view.View", description="提交订单").click()
+                    if not self.ui_animator(resourceId="com.taobao.taobao:id/render_container").wait(timeout=10):
+                        raise ValueError("疑似未支付成功")
+
+                else:
+                   raise ValueError("确认订单页面未能成功点击提交订单按钮")
+                
+    def back_until(self, interval=1, max_times=10):
+        """商品主页"""
+        d = self.ui_animator
+        current = 1
+        while True:
+            if not self.ui_animator(className="android.widget.TextView", text='立即购买'):
+                d.press("back")
+                time.sleep(interval)
+                current += 1
+                if current > max_times:
+                    logger.info("reach max times")
+                    break
+            else:
+                break
+
+
+
 
 
 

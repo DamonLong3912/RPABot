@@ -5,7 +5,7 @@ description: "打开手机淘宝并搜索进入指定商品页进行下单和打
 
 # 添加设备配置
 device:
-  ip: "10.227.104.150:5678"
+  ip: "10.166.135.205:5678"
   settings:
     wait_timeout: 10
     click_post_delay: 0.3
@@ -15,7 +15,7 @@ variables:
   var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」
 点击链接直接打开 或者 淘宝搜索直接打开"
   var2: "星巴克"   
-  var3: "大杯:原味蒸汽奶"
+  var3: "大杯:原味蒸汽奶,中杯:拿铁/巴旦木/燕麦拿铁"
 
 steps:
   - name: "打开淘宝"
