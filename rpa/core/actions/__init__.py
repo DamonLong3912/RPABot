@@ -37,15 +37,17 @@ from .app_actions import (
     VerifyAppInstalledAction,
     StartAppAction,
     WaitForAppInstalledAction,
-    TaobaoSearchAction,
-    ReturnToHomeAction,
-    TaobaoPayListAction
 )
 from .node_actions import (
     GetNodeDescendantsContentAction, 
     WaitAndClickNodeAction,
     GetNodeByPathAction,
     GetListItemBoundsAction
+)
+
+from .app_taobao_action import (
+    TaobaoSearchAction,
+    TaobaoPayListAction
 )
 
 # 动作类型映射表
@@ -84,7 +86,6 @@ ACTION_MAP = {
     'continue_loop': ContinueLoopAction,
     'validate_variable': ValidateVariableAction,
     'TaobaoSearchAction': TaobaoSearchAction,
-    'ReturnToHomeAction': ReturnToHomeAction,
     'TaobaoPayListAction': TaobaoPayListAction
 }
 
