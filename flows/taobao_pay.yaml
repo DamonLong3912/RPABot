@@ -6,8 +6,8 @@ description: "打开手机淘宝并搜索进入指定商品页进行下单和打
 # 添加设备配置
 device:
   # ip: "10.166.135.205:5678"
-  # ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
-  ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
+  ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
+  # ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
   # ip: e5eb6a80
   settings:
     wait_timeout: 10
