@@ -57,6 +57,9 @@ class TaobaoSearchAction(BaseAction):
         d = self.ui_animator
         current = 1
         while True:
+            if self.is_verification_page():
+                raise RuntimeError("出现验证页面")
+                break
             # if not self.ui_animator(className="android.view.View", resourceId="com.taobao.taobao:id/home_searchedit"):
             if not self.ui_animator(className="android.view.View", description='搜索栏'):
                 if self.ui_animator(className="android.view.View", resourceId="com.taobao.taobao:id/poplayer_native_state_id"):
@@ -74,7 +77,7 @@ class TaobaoSearchAction(BaseAction):
 
     def is_verification_page(self):
         """判断是否是验证页面"""
-        if self.ui_animator(textContains="请按照说明进行验证"):
+        if self.ui_animator.app_current()['activity'] == "com.alibaba.wireless.security.open.middletier.fc.ui.ContainerActivity":
             return True
         else:
             return False
@@ -101,18 +104,10 @@ class TaobaoPayListAction(BaseAction):
                     "text": pay_list2[1],
                 })
                 WaitAndClickOCRTextAction(self.bot).execute({
-                    "text": "立即支付",
+                    "textContains": "免密支付",
                 })
-                # self.ui_animator(text=pay_list2[0]).click()
-                # self.ui_animator(text=pay_list2[1]).click()
-                self.ui_animator(className="android.widget.LinearLayout", description="确认").click()
-                if self.ui_animator(className="android.view.View", description="提交订单").wait(timeout=5):
-                    self.ui_animator(className="android.view.View", description="提交订单").click()
-                    if not self.ui_animator(resourceId="com.taobao.taobao:id/render_container").wait(timeout=20):
-                        raise ValueError("疑似未支付成功")
-                else:
-                   raise ValueError("确认订单页面未能成功点击提交订单按钮")
-
+                time.sleep(10)
+                # 检查结果
     def back_until(self, interval=1, max_times=10):
         """商品主页"""
         d = self.ui_animator

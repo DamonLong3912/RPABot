@@ -17,7 +17,7 @@ device:
 variables:
   var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」"
   var2: "星巴克"
-  var3: "大杯:原味蒸汽奶,中杯:拿铁/巴旦木/燕麦拿铁"
+  var3: "超大杯:原味蒸汽奶,中杯:拿铁/巴旦木/燕麦拿铁"
 
 steps:
   - name: "打开淘宝"

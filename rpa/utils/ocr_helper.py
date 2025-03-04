@@ -79,7 +79,7 @@ class OCRHelper:
 
 
 
-    def find(self, image_path: str, text: str = None, textContains: str = None, textMatch: str = None,
+    def find(self, image_path: str, text: str = None, textContains: str = None, textMatches: str = None,
                     region: List[int] = None) -> List[Dict[str, Any]]:
         """
         识别图片中的文字
@@ -106,7 +106,7 @@ class OCRHelper:
             ocr_results = []
             for line in result[0]:
                 box = line[0]
-                text = line[1][0]
+                text_to_match = line[1][0]
                 confidence = line[1][1]
 
                 # 如果指定了region,检查是否在区域内
@@ -117,12 +117,12 @@ class OCRHelper:
                         continue
 
                 # 如果指定了keywords,检查是否包含关键词
-                if not TextMatcher(text).match(text=text, textContains=textContains, textMatches=textMatches):
+                if not TextMatcher(text_to_match).match(text=text, textContains=textContains, textMatches=textMatches):
                     continue
 
                 ocr_results.append({
                     'box': box,
-                    'text': text,
+                    'text': text_to_match,
                     'confidence': confidence
                 })
 

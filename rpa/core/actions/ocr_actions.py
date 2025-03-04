@@ -51,13 +51,13 @@ class WaitAndClickOCRTextAction(OCRBaseAction):
     """等待并点击指定文本"""
 
     def execute(self, params: Dict[str, Any]) -> bool:
-        text = params['text']
+        text = params.get('text')
         timeout = params.get('timeout', 30)
         check_interval = params.get('check_interval', 2)
         screenshot_region = params.get('screenshot_region')
         click_offset = params.get('click_offset')
         textContains = params.get('textContains')
-        textMatch = params.get('textMatch')
+        textMatches = params.get('textMatches')
 
         try:
             start_time = time.time()
@@ -68,20 +68,20 @@ class WaitAndClickOCRTextAction(OCRBaseAction):
                     region=screenshot_region
                 )
 
-                results = self.bot.ocr_helper.extract_text(
-                    screenshot,
-                    keywords=[text]
-                )
+                # results = self.bot.ocr_helper.extract_text(
+                #    screenshot,
+                #    keywords=[text]
+                # )
 
                 results = self.bot.ocr_helper.find(
                     screenshot,
                     text=text,
                     textContains=textContains,
-                    textMatch=textMatch
+                    textMatches=textMatches
                 )
 
                 if results:
-                    self.logger.info(f"找到目标文本: {text}")
+                    self.logger.info(f"找到目标文本: text: {text} , textContains: {textContains} , textMatches: {textMatches} , {results}")
                     if self._click_ocr_result(results[0], screenshot_region, click_offset):
                         return True
 
