@@ -88,7 +88,7 @@ class TaobaoPayListAction(BaseAction):
         pay_list = params.get('pay_list')
         #pay_list的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
         pay_list = pay_list.split(',')
-        breakpoint()
+        # breakpoint()
         for item in pay_list:
             self.back_until()
             self.ui_animator(className="android.widget.TextView", text='立即购买').click()
@@ -96,11 +96,15 @@ class TaobaoPayListAction(BaseAction):
             if '星巴克' in pay_status:
                 WaitAndClickOCRTextAction(self.bot).execute({
                     "text": pay_list2[0],
-                    "screenshot_region": [0, 0, 1080, 1920],
-                    "click_offset": [0, 0]
                 })
-                self.ui_animator(text=pay_list2[0]).click()
-                self.ui_animator(text=pay_list2[1]).click()
+                WaitAndClickOCRTextAction(self.bot).execute({
+                    "text": pay_list2[1],
+                })
+                WaitAndClickOCRTextAction(self.bot).execute({
+                    "text": "立即支付",
+                })
+                # self.ui_animator(text=pay_list2[0]).click()
+                # self.ui_animator(text=pay_list2[1]).click()
                 self.ui_animator(className="android.widget.LinearLayout", description="确认").click()
                 if self.ui_animator(className="android.view.View", description="提交订单").wait(timeout=5):
                     self.ui_animator(className="android.view.View", description="提交订单").click()
