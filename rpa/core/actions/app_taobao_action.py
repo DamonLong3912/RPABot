@@ -122,3 +122,29 @@ class TaobaoPayListAction(BaseAction):
                     break
             else:
                 break
+
+
+class TaobaoUseCouponAction(BaseAction):
+    """
+    淘宝使用优惠券
+    """
+
+    def execute(self, params: Dict[str, Any]) -> None:
+        # 强制关闭淘宝
+        d = self.ui_animator
+        d.stop_app("com.taobao.taobao")
+        # 等待淘宝关闭
+        d.start_app("com.taobao.taobao")
+        # 这样应该进入首页
+        logger.info("等待首页加载")
+        time.sleep(10) # 等待首页加载
+        d(text="消息").click(timeout=1)
+        logger.info("点击消息")
+        time.sleep(1)
+        d("大白饭铺").click(timeout=1)
+        # 点击优惠券
+        d(text="优惠券").click(timeout=1)
+        # 点击立即使用
+        d(text="立即使用").click(timeout=1)
+        # 点击确定
+        d(text="确定").click(timeout=1)
