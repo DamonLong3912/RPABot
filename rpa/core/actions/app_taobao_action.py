@@ -106,3 +106,44 @@ class TaobaoPayListAction(BaseAction):
                     break
             else:
                 break
+
+
+class TaobaoCustomerServiceUrlPayAction(BaseAction):
+    """淘宝打开客服窗口并根据链接选择商品"""
+    
+    def execute(self, params: Dict[str, Any]) -> None:
+        self.back_until()
+
+        if  self.ui_animator(text='客服').wait(timeout=5):
+            self.ui_animator(text='客服').click()
+        else:
+            raise ValueError("打开客服对话框失败")
+        #未测试
+        if self.ui_animator( resourceId="com.taobao.taobao:id/tv_chatcontent").wait(timeout=5):
+            # 获取所有匹配的元素
+            elements = self.ui_animator(resourceId="com.taobao.taobao:id/tv_chatcontent").all()
+            # 获取最后一个元素下的"去领取"按钮
+            if elements:
+                last_element = elements[-1]
+                go_get_btn = last_element.child(description="去领取")
+                if go_get_btn:
+                    go_get_btn.click()
+                else:
+                    raise ValueError("未找到'去领取'按钮")
+        else:
+            raise ValueError("打开商品选择链接失败")
+                
+    def back_until(self, interval=1, max_times=10):
+        """商品主页"""
+        d = self.ui_animator
+        current = 1
+        while True:
+            if not self.ui_animator(resourceId="com.taobao.taobao:id/ll_bottom_bar_content"):
+                d.press("back")
+                time.sleep(interval)
+                current += 1
+                if current > max_times:
+                    logger.info("reach max times")
+                    break
+            else:
+                break

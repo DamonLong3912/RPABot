@@ -47,7 +47,8 @@ from .node_actions import (
 
 from .app_taobao_action import (
     TaobaoSearchAction,
-    TaobaoPayListAction
+    TaobaoPayListAction,
+    TaobaoCustomerServiceUrlPayAction
 )
 
 # 动作类型映射表
@@ -86,7 +87,8 @@ ACTION_MAP = {
     'continue_loop': ContinueLoopAction,
     'validate_variable': ValidateVariableAction,
     'TaobaoSearchAction': TaobaoSearchAction,
-    'TaobaoPayListAction': TaobaoPayListAction
+    'TaobaoPayListAction': TaobaoPayListAction,
+    'TaobaoCustomerServiceUrlPayAction': TaobaoCustomerServiceUrlPayAction
 }
 
 def get_action_class(action_type: str) -> type:

@@ -5,7 +5,7 @@ description: "打开手机淘宝并搜索进入指定商品页进行下单和打
 
 # 添加设备配置
 device:
-  ip: "10.166.135.205:5678"
+  ip: "10.166.23.39:5678"
   settings:
     wait_timeout: 10
     click_post_delay: 0.3
@@ -29,6 +29,11 @@ steps:
       search_text: "${variables.var1}"  # 使用变量
   - action: TaobaoPayListAction
     name: "点击立即购买选择商品并下单"
+    params:
+      pay_status: "${variables.var2}"
+      pay_list: "${variables.var3}"  # 使用变量
+  - action: TaobaoCustomerServiceUrlPayAction
+    name: "打开客服链窗口并获取链接选择商品"
     params:
       pay_status: "${variables.var2}"
       pay_list: "${variables.var3}"  # 使用变量

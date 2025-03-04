@@ -39,15 +39,19 @@ def run_flow(flow_config: Dict[str, Any], task_id: str, device_ip: str, start_st
         
         # 检查是否有已存储的任务标识
         if task_id in running_tasks:
-            # 历史任务应该加一执行
+            # 使用存储的variables参数
+            flow_config['variables'] = running_tasks[task_id].get('variables', {})
             start_step_index += 1
+            # 历史任务应该加一执行
             logger.info(f"恢复任务 {task_id} 的执行，从步骤 {start_step_index} 开始")
-            # 继续执行后续步骤
-            main(flow_config, device_ip, start_step_index,task_id)
+            main(flow_config, device_ip, start_step_index, task_id)
             return
         else:
-            # 否则保存任务
-            running_tasks[task_id] = {'device_ip': device_ip}  # 存储设备IP
+            # 存储任务和variables参数
+            running_tasks[task_id] = {
+                'device_ip': device_ip,
+                'variables': flow_config.get('variables', {})
+            }
         
         # 初始化设备
         logger.info("开始初始化设备UIAutomator2环境...")
@@ -60,7 +64,7 @@ def run_flow(flow_config: Dict[str, Any], task_id: str, device_ip: str, start_st
         
         # 执行流程
         logger.info(f"开始执行流程: {flow_config.get('name', '未命名流程')}")
-        main(flow_config, device_ip, start_step_index,task_id)
+        main(flow_config, device_ip, start_step_index, task_id)
         logger.info("流程执行完成")
 
                 # 清理任务记录
@@ -95,7 +99,7 @@ def start_flow():
         flow_path = data.get('flow_path')
         task_id = data.get('task_id', str(threading.get_ident()))
         start_step_index = data.get('start_step_index', 0)
-        variables = data.get('variables', {})  # 获取传入的变量
+        variables = data.get('variables', {})
         
         if not flow_path:
             return jsonify({
@@ -116,7 +120,10 @@ def start_flow():
             
         # 获取设备 IP
         if task_id in running_tasks:
-            device_ip = running_tasks[task_id]['device_ip']  # 获取之前的设备IP
+            device_ip = running_tasks[task_id]['device_ip']
+            # 如果是恢复任务且没有传入新的variables,使用存储的variables
+            if not variables:
+                variables = running_tasks[task_id].get('variables', {})
         else:
             # 获取可用设备
             device_config = yaml.safe_load(open(flow_file, 'r', encoding='utf-8'))
