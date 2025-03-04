@@ -5,16 +5,18 @@ description: "打开手机淘宝并搜索进入指定商品页进行下单和打
 
 # 添加设备配置
 device:
-  ip: "10.166.135.205:5678"
+  # ip: "10.166.135.205:5678"
+  # ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
+  # ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
+  ip: e5eb6a80
   settings:
     wait_timeout: 10
     click_post_delay: 0.3
 
 # 默认变量，可被API传入的变量覆盖
 variables:
-  var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」
-点击链接直接打开 或者 淘宝搜索直接打开"
-  var2: "星巴克"   
+  var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」"
+  var2: "星巴克"
   var3: "大杯:原味蒸汽奶,中杯:拿铁/巴旦木/燕麦拿铁"
 
 steps:
