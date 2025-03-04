@@ -15,20 +15,31 @@ device:
 
 # 默认变量，可被API传入的变量覆盖
 variables:
-  var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」"
+  # var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」"
+  # var1: "【淘宝】52%买家复购 https://e.tb.cn/h.TEhTXl1blQS23xG?tk=LtkhelKTtOn CZ001 「星巴克电子券咖快啡快代下单咖啡兑换劵优惠卷中大杯自助门店自取」"
+  # intent_url: "adb -s adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp shell am start -a android.intent.action.VIEW -d "taobao://item.taobao.com/item.htm?id=693715128230" "
+  intent_url: "taobao://item.taobao.com/item.htm?id=693715128230"
+  var1: "大白饭票 星巴克电子券咖快啡快代下单咖啡兑换劵优惠卷中大杯自助门店自取"
   var2: "星巴克"
-  var3: "超大杯:原味蒸汽奶,中杯:拿铁/巴旦木/燕麦拿铁"
+  var3: "超大杯:原味蒸汽奶,中杯:经典巧克力饮品/卡布奇诺"
+
 
 steps:
-  - name: "打开淘宝"
-    action: "start_app"
-    params:
-      package: "com.taobao.taobao"
+  # - name: "打开淘宝"
+  #  action: "start_app"
+  #  params:
+  #    package: "com.taobao.taobao"
 
-  - action: TaobaoSearchAction
-    name: "点击搜索栏并搜索进入指定商品页"
+  # - action: TaobaoSearchAction
+  #  name: "点击搜索栏并搜索进入指定商品页"
+  #  params:
+  #    search_text: "${variables.var1}"  # 使用变量
+
+  - action: "taobao_intent"
+    name: "打开淘宝并进入指定商品"
     params:
-      search_text: "${variables.var1}"  # 使用变量
+      intent_url: "${variables.intent_url}"
+
   - action: TaobaoPayListAction
     name: "点击立即购买选择商品并下单"
     params:

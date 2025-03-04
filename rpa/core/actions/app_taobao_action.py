@@ -7,12 +7,24 @@ from .base_action import BaseAction
 from .ocr_actions import WaitAndClickOCRTextAction
 
 
+class TaobaoIntentAction(BaseAction):
+    """打开淘宝并进入指定商品"""
+
+    def execute(self, params: Dict[str, Any]) -> None:
+        intent_url = params.get('intent_url')
+        d = self.ui_animator
+        ip = self.bot.device_ip
+        cmd = f"am start -a android.intent.action.VIEW -d '{intent_url}'"
+        logger.info(f"执行命令: {cmd}")
+        d.shell(cmd)
+        # 等待淘宝启动
+        time.sleep(10)
+
+
 class TaobaoSearchAction(BaseAction):
     """打开淘宝搜索框并搜索进入商品"""
 
     def execute(self, params: Dict[str, Any]) -> None:
-        search_text = params.get('search_text')
-
         if not search_text:
             raise ValueError("必须提供search_text参数")
 
@@ -103,9 +115,10 @@ class TaobaoPayListAction(BaseAction):
                 WaitAndClickOCRTextAction(self.bot).execute({
                     "text": pay_list2[1],
                 })
-                WaitAndClickOCRTextAction(self.bot).execute({
-                    "textContains": "免密支付",
-                })
+                breakpoint()
+                # WaitAndClickOCRTextAction(self.bot).execute({
+                #   "textContains": "免密支付",
+                # })
                 time.sleep(10)
                 # 检查结果
     def back_until(self, interval=1, max_times=10):
