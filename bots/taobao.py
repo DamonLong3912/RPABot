@@ -25,24 +25,52 @@ class Taobao(Base):
   app_version = "10.10.0"
 
   def use_coupons(self, count=1):
-    self.back_until(lambda: self.exists('消息'))
+    self.app_start()
+    # self.back_until(lambda: self.exists('消息'))
     self.click('消息')
-    self.click('大白饭铺')
-    self.sleep(3, '等待大白饭铺加载')
+    self.click('大白饭票')
+    self.sleep(3, '等待大白饭票加载')
 
-    eles = self.d(description="去领取")
-    last_eles = eles[-count:]
-    for ele in last_eles:
-      ele.click()
+    eles = self.d(descriptionMatches="去领取|去查看")
+    eles_count = eles.count
+    idx = 0
+    log.info(f"idx: {idx}, eles_count: {eles_count}, count: {count}")
+    for ele in eles:
+      if eles_count - idx <= count:
+        ele.click()
+        self.sleep(1, '等待领取')
+        self.use_coupon()
+      else:
+        log.info(f"skip idx: {idx}")
+      idx += 1
 
-  def use_counpon(self):
+  def use_coupon(self):
+    log.info("use coupon")
     self.click('确认')
     self.click('我知道了')
     self.click('查看文本')
     self.click('全部复制')
     if self.exists('剪贴板信息'):
       self.click('同意')
+    url = self.d.clipboard
+    log.info(f"url: {url}")
+    if url:
+      self.d.open_url(url)
+      self.sleep(10, '等待打开')
+    else:
+      log.info("no url")
 
+  def choose_goods_in_browser(self):
+    """
+    在浏览器中选择商品
+    """
+    self.click('确定')
+    self.sleep(1, '等待打开')
+    self.click('请输入门店地址')
+    self.d.send_keys('北京市朝阳区望京SOHO塔3')
+    self.sleep(3, '等待输入')
+    self.d.click(0.133, 0.287) # 第一个条目
+    self.sleep(3, '等待选择')
 
   def buy_goods(self, params: Dict[str, Any]):
     pay_status = params.get('pay_status')
