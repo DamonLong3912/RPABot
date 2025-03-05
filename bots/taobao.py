@@ -13,7 +13,7 @@ import os
 import argparse
 import retry
 from lib.cli import cli
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -49,6 +49,9 @@ class Taobao(Base):
     last_ele = eles[-1]
     last_ele.click()
     self.sleep(3, '等待领取')
+    if self.exists('提取错误'):
+      log.info("提取错误")
+      return
     self.click('确认')
     self.click('我知道了')
     self.click('查看文本')
@@ -60,18 +63,23 @@ class Taobao(Base):
     if url:
       self.d.open_url(url)
       self.sleep(10, '等待打开')
-      self.choose_goods_in_browser()
+      if not self.open_store_in_browser():
+        raise ValueError("打开门店失败")
+      self.buy_goods_in_browser()
     else:
       log.info("no url")
 
-  def choose_goods_in_browser(self):
+  def open_store_in_browser(self):
     """
     在浏览器中选择商品
     """
+
+    location_name = '吴江万象汇'
+
     self.click('确定')
     self.sleep(1, '等待打开')
     self.click('请输入门店地址')
-    self.d.send_keys('北京市朝阳区望京SOHO塔3')
+    self.d.send_keys(location_name)
     self.sleep(3, '等待输入')
     self.d.click(0.133, 0.287) # 第一个条目
     self.sleep(5, '等待选择')
@@ -80,11 +88,13 @@ class Taobao(Base):
     # 检查是否正确进入门店
     if self.exists('请仔细核对门店信息'):
       self.click('确定')
+      return True
     else:
       log.info("进入门店失败")
+      return False
 
 
-  def goods_list(self):
+  def buy_goods_in_browser(self):
     """
     获取商品列表
     """
@@ -115,7 +125,7 @@ class Taobao(Base):
     self.sleep(3, '等待输入')
 
 
-  def buy_one_goods(self, specs: str[]):
+  def buy_one_goods(self, specs: List[str]):
     """
     购买一个商品
     """
