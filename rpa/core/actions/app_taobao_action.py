@@ -109,13 +109,17 @@ class TaobaoPayListAction(BaseAction):
             self.ui_animator(className="android.widget.TextView", text='立即购买').click()
             pay_list2 = item.split(':')
             if '星巴克' in pay_status:
-                WaitAndClickOCRTextAction(self.bot).execute({
-                    "text": pay_list2[0],
+                spec1, spec2 = pay_list2
+                result = WaitAndClickOCRTextAction(self.bot).execute({
+                    "text": spec1,
                 })
-                WaitAndClickOCRTextAction(self.bot).execute({
-                    "text": pay_list2[1],
+                if not result:
+                    raise ValueError(f"找不到商品规格: {spec1}")
+                result = WaitAndClickOCRTextAction(self.bot).execute({
+                    "text": spec2,
                 })
-                breakpoint()
+                if not result:
+                    raise ValueError(f"找不到商品规格: {spec2}")
                 # WaitAndClickOCRTextAction(self.bot).execute({
                 #   "textContains": "免密支付",
                 # })
