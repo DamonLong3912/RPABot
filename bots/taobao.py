@@ -70,7 +70,15 @@ class Taobao(Base):
     self.d.send_keys('北京市朝阳区望京SOHO塔3')
     self.sleep(3, '等待输入')
     self.d.click(0.133, 0.287) # 第一个条目
-    self.sleep(3, '等待选择')
+    self.sleep(5, '等待选择')
+    self.d.click(0.477, 0.312) #  继续选择第一个
+    self.sleep(5, '等待选择')
+    # 检查是否正确进入门店
+    if self.exists('请仔细核对门店信息'):
+      pass
+    else:
+      log.info("进入门店失败")
+
 
   def buy_goods(self, params: Dict[str, Any]):
     pay_status = params.get('pay_status')
