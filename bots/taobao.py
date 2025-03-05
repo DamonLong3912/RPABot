@@ -24,6 +24,26 @@ class Taobao(Base):
   app_name = "淘宝"
   app_version = "10.10.0"
 
+  def use_coupons(self, count=1):
+    self.back_until(lambda: self.exists('消息'))
+    self.click('消息')
+    self.click('大白饭铺')
+    self.sleep(3, '等待大白饭铺加载')
+
+    eles = self.d(description="去领取")
+    last_eles = eles[-count:]
+    for ele in last_eles:
+      ele.click()
+
+  def use_counpon(self):
+    self.click('确认')
+    self.click('我知道了')
+    self.click('查看文本')
+    self.click('全部复制')
+    if self.exists('剪贴板信息'):
+      self.click('同意')
+
+
   def buy_goods(self, params: Dict[str, Any]):
     pay_status = params.get('pay_status')
     pay_list = params.get('pay_list')
