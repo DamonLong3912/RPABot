@@ -1,0 +1,33 @@
+name: "淘宝购物测试"
+app_name: "淘宝"
+version: "1.0"
+description: "打开手机淘宝并搜索进入指定商品页进行下单和打开支付宝付款"
+
+# 添加设备配置
+device:
+  # ip: "10.166.135.205:5678"
+  ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
+  # ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
+  # ip: e5eb6a80
+  settings:
+    wait_timeout: 10
+    click_post_delay: 0.3
+
+# 默认变量，可被API传入的变量覆盖
+variables:
+  var1: "【淘宝】54%买家复购 https://e.tb.cn/h.TE6o7wnbSIEifvr?tk=iCFIelDONAi MF287 「麦当劳代下单优惠I券板烧麦辣鸡腿汉堡巨无霸辣翅薯条麦乐鸡脆汁鸡」 点击链接直接打开 或者 淘宝搜索直接打开"
+  intent_url: "taobao://item.taobao.com/item.htm?id=727352428927"
+  var2: "麦当劳"
+  var3: "经典【3件套】麦辣鸡腿堡/麦香鱼汉堡+小薯条+小可乐"
+
+steps:
+  - action: "taobao_intent"
+    name: "打开淘宝并进入指定商品"
+    params:
+      intent_url: "${variables.intent_url}"
+
+  - action: TaobaoPayListAction
+    name: "点击立即购买选择商品并下单"
+    params:
+      pay_status: "${variables.var2}"
+      pay_list: "${variables.var3}"  # 使用变量
