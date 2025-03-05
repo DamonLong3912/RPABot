@@ -9,6 +9,7 @@ device:
   ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
   # ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
   # ip: e5eb6a80
+  ip: 2b09dc5a
   settings:
     wait_timeout: 10
     click_post_delay: 0.3
@@ -18,7 +19,8 @@ variables:
   var1: "【淘宝】52%买家复购 https://e.tb.cn/h.TEhTXl1blQS23xG?tk=LtkhelKTtOn CZ001 「星巴克电子券咖快啡快代下单咖啡兑换劵优惠卷中大杯自助门店自取」"
   intent_url: "taobao://item.taobao.com/item.htm?id=600254519991"
   var2: "瑞幸"
-  var3: "店铺福利⭐原价32面值饮品/不支持小黑杯/不支持超大杯❤️代下单自提"
+  # var3: "店铺福利⭐原价32面值饮品/不支持小黑杯/不支持超大杯❤️代下单自提"
+  var3: "^.+原价32面值饮品\/不支持小黑.+"
 
 
 steps:
