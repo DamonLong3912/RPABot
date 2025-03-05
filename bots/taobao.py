@@ -24,20 +24,7 @@ class Taobao(Base):
   app_name = "淘宝"
   app_version = "10.10.0"
 
-  def use_coupons(self, count=1):
-    eles_count = eles.count
-    idx = 0
-    log.info(f"idx: {idx}, eles_count: {eles_count}, count: {count}")
-    for ele in eles:
-      if eles_count - idx <= count:
-        ele.click()
-        self.sleep(1, '等待领取')
-        self.use_coupon()
-      else:
-        log.info(f"skip idx: {idx}")
-      idx += 1
-
-  def use_coupon(self):
+  def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁'):
     log.info("use coupon")
     self.app_start()
     # self.back_until(lambda: self.exists('消息'))
@@ -65,7 +52,7 @@ class Taobao(Base):
       self.sleep(10, '等待打开')
       if not self.open_store_in_browser():
         raise ValueError("打开门店失败")
-      self.buy_goods_in_browser()
+      self.buy_goods_in_browser(goods_name)
     else:
       log.info("no url")
 
@@ -94,11 +81,10 @@ class Taobao(Base):
       return False
 
 
-  def buy_goods_in_browser(self):
+  def buy_goods_in_browser(self, good_name = '椰子丝绒燕麦拿铁'):
     """
     获取商品列表
     """
-    goods_name = '椰子丝绒燕麦拿铁'
     log.info(f"goods_name: {goods_name}")
     ele = self.d(text=goods_name)
     if ele.exists():
