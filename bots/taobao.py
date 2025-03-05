@@ -25,13 +25,6 @@ class Taobao(Base):
   app_version = "10.10.0"
 
   def use_coupons(self, count=1):
-    self.app_start()
-    # self.back_until(lambda: self.exists('消息'))
-    self.click('消息')
-    self.click('大白饭票')
-    self.sleep(3, '等待大白饭票加载')
-
-    eles = self.d(descriptionMatches="去领取|去查看")
     eles_count = eles.count
     idx = 0
     log.info(f"idx: {idx}, eles_count: {eles_count}, count: {count}")
@@ -46,6 +39,16 @@ class Taobao(Base):
 
   def use_coupon(self):
     log.info("use coupon")
+    self.app_start()
+    # self.back_until(lambda: self.exists('消息'))
+    self.click('消息')
+    self.click('大白饭票')
+    self.sleep(3, '等待大白饭票加载')
+    eles = self.d(descriptionMatches="去领取|去查看")
+    # 获取最后一个
+    last_ele = eles[-1]
+    last_ele.click()
+    self.sleep(3, '等待领取')
     self.click('确认')
     self.click('我知道了')
     self.click('查看文本')
@@ -86,6 +89,7 @@ class Taobao(Base):
     获取商品列表
     """
     goods_name = '椰子丝绒燕麦拿铁'
+    log.info(f"goods_name: {goods_name}")
     ele = self.d(text=goods_name)
     if ele.exists():
       ele.sibling(text='选规格').click()
@@ -111,47 +115,48 @@ class Taobao(Base):
     self.sleep(3, '等待输入')
 
 
+  def buy_one_goods(self, specs: str[]):
+    """
+    购买一个商品
+    """
+    self.click('立即购买')
+    for spec in specs:
+      if not self.exists(text=spec):
+        if not self.scroll_up_until(
+          lambda: self.exists(text=spec),
+          max_times=3
+        ):
+            raise ValueError(f"找不到商品规格: {spec2}")
+      if not self.click(text=spec):
+        raise ValueError(f"找不到商品规格: {spec}")
+
+      if not self.click('免密支付'):
+        raise ValueError("找不到免密支付")
+      time.sleep(10)
+
   def buy_goods(self, params: Dict[str, Any]):
     pay_status = params.get('pay_status')
     pay_list = params.get('pay_list')
     # pay_list的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
     pay_list = pay_list.split(',')
     for item in pay_list:
-        self.back_until(lambda: self.exists('立即购买'))
-        self.click('立即购买')
-        pay_list2 = item.split(':')
-        if '星巴克' in pay_status:
-            spec1, spec2 = pay_list2
-            if not self.click(text=spec1):
-              raise ValueError(f"找不到商品规格: {spec1}")
+      specs = item.split(':')
+      self.buy_one_goods(item)
 
-            if not self.exists(text=spec2):
-              if not self.scroll_up_until(
-                lambda: self.exists(text=spec2),
-                max_times=3
-              ):
-                raise ValueError(f"找不到商品规格: {spec2}")
-            if not self.click(text=spec2):
-              raise ValueError(f"找不到商品规格: {spec2}")
-
-            if not self.click('免密支付'):
-              raise ValueError("找不到免密支付")
-            time.sleep(10)
-            # 检查结果
-    def back_until(self, interval=1, max_times=10):
-        """商品主页"""
-        d = self.d
-        current = 1
-        while True:
-            if not self.exists('立即购买'):
-                d.press("back")
-                time.sleep(interval)
-                current += 1
-                if current > max_times:
-                    logger.info("reach max times")
-                    break
-            else:
-                break
+  def back_until(self, interval=1, max_times=10):
+      """商品主页"""
+      d = self.d
+      current = 1
+      while True:
+          if not self.exists('立即购买'):
+              d.press("back")
+              time.sleep(interval)
+              current += 1
+              if current > max_times:
+                  logger.info("reach max times")
+                  break
+          else:
+              break
 
   def is_verification_page(self):
       """判断是否是验证页面"""
