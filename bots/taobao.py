@@ -46,6 +46,9 @@ class Taobao(Base):
                 raise ValueError(f"找不到商品规格: {spec2}")
             if not self.click(text=spec2):
               raise ValueError(f"找不到商品规格: {spec2}")
+
+            if not self.click('免密支付'):
+              raise ValueError("找不到免密支付")
             time.sleep(10)
             # 检查结果
     def back_until(self, interval=1, max_times=10):
