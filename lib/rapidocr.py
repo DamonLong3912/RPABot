@@ -53,7 +53,7 @@ class Ocr:
     def result(self):
         return self.ocr(self.image_path)
 
-    def text_position(self, text = None, position = 'center', **kwargs):
+    def text_position(self, position = 'center', **kwargs):
         r = self.info(**kwargs)
         if r is None:
             return None

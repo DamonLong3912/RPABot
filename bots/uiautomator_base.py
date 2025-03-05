@@ -262,6 +262,7 @@ class Base(BaseBot):
 
 
     def screen_text_exists(self, textContains = None, text=None, textMatches=None):
+        log.info(f"screen_text_exists text={text}, textMatches={textMatches}, textContains={textContains}")
         kwargs = {}
         if textContains is not None:
             kwargs['textContains'] = textContains
