@@ -81,6 +81,36 @@ class Taobao(Base):
       log.info("进入门店失败")
 
 
+  def goods_list(self):
+    """
+    获取商品列表
+    """
+    goods_name = '椰子丝绒燕麦拿铁'
+    ele = self.d(text=goods_name)
+    if ele.exists():
+      ele.sibling(text='选规格').click()
+      self.sleep(10, '等待打开选规格')
+      # 检查是否打开
+      if self.exists('添加至购物车'):
+        # 可能需要选规格，暂时先不做
+        self.click('添加至购物车')
+        self.click('去结算')
+        self.input_name()
+      else:
+        log.info("找不到添加至购物车")
+    else:
+      log.info("找不到商品")
+
+
+  def input_name(self, name: str = '张三'):
+    """
+    输入商品名称
+    """
+    self.click('请输入取单人姓名')
+    self.d.send_keys(name)
+    self.sleep(3, '等待输入')
+
+
   def buy_goods(self, params: Dict[str, Any]):
     pay_status = params.get('pay_status')
     pay_list = params.get('pay_list')
