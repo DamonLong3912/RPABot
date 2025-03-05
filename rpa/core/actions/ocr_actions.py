@@ -81,7 +81,7 @@ class WaitAndClickOCRTextAction(OCRBaseAction):
                 )
 
                 if results:
-                    self.logger.info(f"找到目标文本: text: {text} , textContains: {textContains} , textMatches: {textMatches} , {results}")
+                    self.logger.info(f"找到目标文本: text: {text} , textContains: {textContains} , textMatches: {textMatches} , {results}, screenshot_region: {screenshot_region}, click_offset: {click_offset}")
                     if self._click_ocr_result(results[0], screenshot_region, click_offset):
                         return True
 

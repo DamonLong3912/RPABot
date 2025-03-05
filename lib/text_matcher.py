@@ -1,5 +1,6 @@
 import re
 import logging
+import os
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -9,7 +10,8 @@ class TextMatcher:
         self.text = text
 
     def match(self, text = None, textMatches=None, textContains=None):
-        # log.info(f"match text: {self.text}, text={text}, textMatches={textMatches}, textContains={textContains}")
+        if os.environ.get("DEBUG"):
+            log.info(f"match text: {self.text}, text={text}, textMatches={textMatches}, textContains={textContains}")
         if textMatches:
             result = re.match(textMatches, self.text)
             # log.info(f"result {result}")
