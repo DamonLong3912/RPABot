@@ -57,6 +57,7 @@ class Taobao(Base):
     if url:
       self.d.open_url(url)
       self.sleep(10, '等待打开')
+      self.choose_goods_in_browser()
     else:
       log.info("no url")
 
@@ -75,7 +76,7 @@ class Taobao(Base):
     self.sleep(5, '等待选择')
     # 检查是否正确进入门店
     if self.exists('请仔细核对门店信息'):
-      pass
+      self.click('确定')
     else:
       log.info("进入门店失败")
 
