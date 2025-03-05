@@ -104,8 +104,7 @@ class Taobao(Base):
     if ele.exists():
       ele.sibling(text='选规格').click()
       self.sleep(10, '等待打开选规格')
-      # 检查是否打开
-      if self.exists('添加至购物车'):
+      if self.wait_until(lambda: self.exists('添加至购物车'), timeout=20):
         # 可能需要选规格，暂时先不做
         self.click('添加至购物车')
         self.click('去结算')
@@ -121,6 +120,7 @@ class Taobao(Base):
     输入商品名称
     """
     self.click('请输入取单人姓名')
+    self.sleep(2, '等待输入')
     self.d.send_keys(name)
     self.sleep(3, '等待输入')
 
