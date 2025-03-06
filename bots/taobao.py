@@ -52,14 +52,34 @@ class Taobao(Base):
     self.click('确认')
     self.click('我知道了')
     self.click('查看文本')
+    self.sleep(1, '等待查看文本')
     self.click('全部复制')
+    self.sleep(1, '等待复制')
     if self.exists('剪贴板信息'):
       self.click('同意')
     url = self.d.clipboard
     log.info(f"url: {url}")
+
+    # 格式化url
+    parts = url.split(",")
+    if len(parts) == 2:
+      url = parts[1]
+    else:
+      url = parts[0]
+
+    log.info(f"formatted url: {url}")
+
     if url:
       self.d.open_url(url)
       self.sleep(10, '等待打开')
+
+
+      # 检查是否打开浏览器
+      if self.d.info.get('currentPackageName') == 'com.android.browser':
+        log.info("打开浏览器成功")
+      else:
+        raise ValueError("打开浏览器失败")
+
       if not self.open_store_in_browser():
         raise ValueError("打开门店失败")
       self.buy_goods_in_browser(goods_name, type)
