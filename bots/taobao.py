@@ -304,16 +304,24 @@ class Taobao(Base):
           return False
 
 
-  def buy_luckin_in_browser(self):
+  def buy_luckin_in_browser(self, name='小黄油美式'):
     """
     在浏览器中购买瑞幸
     """
-    self.click('允许') # 获取定位权限
-    self.click('查找城市')
-    self.d.send_keys('苏州')
-
-    self.click('输入门店名称或地址搜索')
-    self.d.send_keys('吴江万象汇店')
+    if self.scroll_up_until(lambda: self.exists(text=name), max_times=10, scale=0.5):
+      self.click(text=name)
+      self.sleep(3, '等待打开')
+      if not self.click('立刻购买'):
+        log.info("找不到立刻购买")
+        raise ValueError("找不到立刻购买")
+      if self.exists('查询失败'):
+        log.info("查询失败")
+        raise ValueError("查询失败")
+      else:
+        self.input_name()
+    else:
+      log.info("找不到商品")
+      raise ValueError("找不到商品")
 
   def buy_kfc_in_browser(self):
     """
