@@ -229,7 +229,11 @@ class Taobao(Base):
     """
     购买一个商品
     """
-    self.click('立即购买')
+    if not self.click('立即购买'):
+      if self.click('去购买'):
+        self.sleep(3, '等待去购买')
+      else:
+        raise ValueError("找不到立即购买或去购买")
     log.info(f"specs: {specs}")
     for spec in specs:
       text = spec

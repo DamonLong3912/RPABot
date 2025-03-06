@@ -16,17 +16,15 @@ device:
 
 # 默认变量，可被API传入的变量覆盖
 variables:
-  var1: "【淘宝】54%买家复购 https://e.tb.cn/h.TE6o7wnbSIEifvr?tk=iCFIelDONAi MF287 「麦当劳代下单优惠I券板烧麦辣鸡腿汉堡巨无霸辣翅薯条麦乐鸡脆汁鸡」 点击链接直接打开 或者 淘宝搜索直接打开"
   intent_url: "taobao://item.taobao.com/item.htm?id=727352428927"
-  var2: "麦当劳"
-  var3: "^.+麦辣鸡腿堡/麦香鱼汉堡.+"
+  specs: "^.+麦辣鸡腿堡/麦香鱼汉堡.+"
   phone: "18606228848"
   name: '朱先生'
   address: '江苏省苏州市吴江区横扇街道姚家港村9组41号'
   position: [120.6398, 31.0586]
   goods_name: "麦辣鸡腿堡"
-  goods_name_regex: "^.+麦辣鸡腿堡.+"
   type: "mcdonals"
+  city: "苏州"
 
 steps:
   - action: "taobao_intent"
@@ -37,5 +35,11 @@ steps:
   - action: TaobaoPayListAction
     name: "点击立即购买选择商品并下单"
     params:
-      pay_status: "${variables.var2}"
-      pay_list: "${variables.var3}"  # 使用变量
+      phone: "${variables.phone}"
+      name: "${variables.name}"
+      address: "${variables.address}"
+      position: "${variables.position}"
+      goods_name: "${variables.goods_name}"
+      specs: "${variables.specs}"
+      type: "${variables.type}"
+      city: "${variables.city}"

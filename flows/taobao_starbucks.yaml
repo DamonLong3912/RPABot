@@ -16,19 +16,14 @@ device:
 
 # 默认变量，可被API传入的变量覆盖
 variables:
-  # var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」"
-  var1: "【淘宝】52%买家复购 https://e.tb.cn/h.TEhTXl1blQS23xG?tk=LtkhelKTtOn CZ001 「星巴克电子券咖快啡快代下单咖啡兑换劵优惠卷中大杯自助门店自取」"
   intent_url: "taobao://item.taobao.com/item.htm?id=693715128230"
-  var2: "星巴克"
-  var3: "大杯:原味蒸气奶"
-
   position: [23.14603, 113.30598]
   address: 广东省广州市天河区先烈东路190号凯旋大厦1楼 如驿酒店(广州沙河顶服装城店)
   phone: "13719099099"
   name: 程家念
   goods_name: "大杯:原味蒸气奶"
-  goods_name_regex: "^.+大杯:原味蒸气奶.+"
   type: "starbucks"
+  city: "广州"
 
 
 steps:
@@ -40,10 +35,10 @@ steps:
   - action: TaobaoPayListAction
     name: "点击立即购买选择商品并下单"
     params:
-      pay_status: "${variables.var2}"
-      pay_list: "${variables.var3}"  # 使用变量
+      specs: "${variables.specs}"
       address: "${variables.address}"
       position: "${variables.position}"
       phone: "${variables.phone}"
       name: "${variables.name}"
-      type: "starbucks"
+      type: "${variables.type}"
+      city: "${variables.city}"
