@@ -24,6 +24,16 @@ class Taobao(Base):
   app_name = "淘宝"
   app_version = "10.10.0"
 
+  def deliver_goods(self, phone, name, address, position):
+    """
+    代下单,直接配送到指定地址
+    """
+    # 调用下单api
+    log.info(f"deliver_goods: {phone}, {name}, {address}, {position}")
+    pass
+
+
+
   def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁', type = 'luckin'):
     log.info("use coupon")
     self.app_start()
@@ -85,6 +95,10 @@ class Taobao(Base):
       self.buy_luckin_in_browser()
     elif type == 'starbucks':
       self.buy_starbucks_in_browser()
+    elif type == 'mcdonalds':
+      self.buy_mcdonalds_in_browser()
+    elif type == 'kfc':
+      self.buy_kfc_in_browser()
     else:
       raise ValueError("不支持的类型")
 
@@ -205,6 +219,22 @@ class Taobao(Base):
 
     self.click('输入门店名称或地址搜索')
     self.d.send_keys('吴江万象汇店')
+
+  def buy_kfc_in_browser(self):
+    """
+    在浏览器中购买肯德基
+    """
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
+
+  def buy_mcdonalds_in_browser(self):
+    """
+    在浏览器中购买麦当劳
+    """
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
 
 if __name__ == "__main__":
   bot = Taobao()
