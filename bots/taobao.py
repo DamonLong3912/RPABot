@@ -137,6 +137,7 @@ class Taobao(Base):
     购买一个商品
     """
     self.click('立即购买')
+    log.info(f"specs: {specs}")
     for spec in specs:
       text = spec
       textMatches = None
@@ -144,16 +145,19 @@ class Taobao(Base):
       if spec.startswith('^'):
         textMatches = spec
         text = None
-      if not self.exists(text=text, textMatches=textMatches):
-        if not self.scroll_up_until(
-          lambda: self.exists(text=text, textMatches=textMatches),
-          max_times=3,
-          scale=0.5
-        ):
+      if self.scroll_up_until(
+        lambda: self.exists(text=text, textMatches=textMatches),
+        max_times=3,
+        scale=0.5
+      ):
+        if not self.click(text=text, textMatches=textMatches):
+          raise ValueError(f"找不到商品规格: {spec}")
+        if not self.exists('免密支付'):
+          # 可能是之前选中了，现在反而是不选中了
+          # 重新选回来
+          if not self.click(text=text, textMatches=textMatches):
             raise ValueError(f"找不到商品规格: {spec}")
-      if not self.click(text=text, textMatches=textMatches):
-        raise ValueError(f"找不到商品规格: {spec}")
-
+      return
       if not self.click('免密支付'):
         raise ValueError("找不到免密支付")
       time.sleep(10)
