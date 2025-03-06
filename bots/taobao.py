@@ -340,8 +340,28 @@ class Taobao(Base):
     在浏览器中购买麦当劳
     """
     self.click('允许') # 获取定位权限
-    self.click('查找城市')
+    self.sleep(3, '等待允许') # 重新选择城市
+    self.d.click(128,845)
+    self.sleep(1, '等待重新选择城市')
+    self.click('请输入关键字')
+    self.sleep(2, '等待输入关键字')
     self.d.send_keys('苏州')
+
+    selector = self.d.xpath("//android.widget.TextView[@text='苏州']")
+    selector.all()[0].click()
+    self.sleep(1, '等待选择餐厅')
+
+
+    self.click('请输入地址寻找门店')
+    self.sleep(2, '等待输入地址')
+    self.d.send_keys('吴江吾悦')
+    self.sleep(3, '等待搜索结果')
+    self.d.click(546,1078) # 点击第一个结果
+
+    self.click('已核实门店')
+    self.click('确认下单')
+    # 这里应该就结束了
+    return True
 
 if __name__ == "__main__":
   bot = Taobao()
