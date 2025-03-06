@@ -24,6 +24,16 @@ class Taobao(Base):
   app_name = "淘宝"
   app_version = "10.10.0"
 
+
+  def deliver_goods(self, phone, name, address, position):
+    """
+    代下单,直接配送到指定地址
+    """
+    # 调用下单api
+    pass
+
+
+
   def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁'):
     log.info("use coupon")
     self.app_start()
