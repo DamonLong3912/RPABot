@@ -80,13 +80,64 @@ class Taobao(Base):
       else:
         raise ValueError("打开浏览器失败")
 
-      if not self.open_store_in_browser():
+      if not self.open_store_in_browser(type):
         raise ValueError("打开门店失败")
       self.buy_goods_in_browser(goods_name, type)
     else:
       log.info("no url")
 
-  def open_store_in_browser(self):
+
+
+  def open_store_in_browser(self,type):
+    if type == 'starbucks':
+      return self.open_starbucks_store_in_browser()
+    elif type == 'luckin':
+      return self.open_luckin_store_in_browser()
+    elif type == 'mcdonalds':
+      return self.open_mcdonalds_store_in_browser()
+    elif type == 'kfc':
+      return self.open_kfc_store_in_browser()
+    else:
+      raise ValueError("不支持的类型")
+
+
+  def open_luckin_store_in_browser(self):
+    """
+    在浏览器中打开瑞幸门店
+    """
+    log.info("open luckin store in browser")
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
+    self.click('输入门店名称')
+    self.d.send_keys('吴江万象汇店')
+
+
+  def open_mcdonalds_store_in_browser(self):
+    """
+    在浏览器中打开麦当劳门店
+    """
+    log.info("open mcdonalds store in browser")
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
+    self.click('输入门店名称')
+    self.d.send_keys('苏州万象汇店')
+
+
+  def open_kfc_store_in_browser(self):
+    """
+    在浏览器中打开肯德基门店
+    """
+    log.info("open kfc store in browser")
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
+    self.click('输入门店名称')
+    self.d.send_keys('苏州万象汇店')
+
+
+  def open_starbucks_store_in_browser(self):
     """
     在浏览器中选择商品
     """
