@@ -6,7 +6,7 @@ description: "打开手机淘宝并搜索进入指定商品页进行下单和打
 # 添加设备配置
 device:
   # ip: "10.166.135.205:5678"
-  ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
+  # ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
   # ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
   # ip: e5eb6a80
   ip: 2b09dc5a
@@ -25,6 +25,9 @@ variables:
   name: '朱先生'
   address: '江苏省苏州市吴江区横扇街道姚家港村9组41号'
   position: [120.6398, 31.0586]
+  goods_name: "小黄油美式"
+  goods_name_regex: "^.+小黄油美式.+"
+  type: "luckin"
 
 
 steps:

@@ -249,9 +249,13 @@ class Taobao(Base):
           log.info("可能之前选中了，现在反而是不选中了, 重新选回来")
           if not self.click(text=text, textMatches=textMatches):
             raise ValueError(f"找不到商品规格: {spec}")
-      if not self.click('免密支付'):
-        raise ValueError("找不到免密支付")
-      time.sleep(10)
+    if not self.click('免密支付'):
+      raise ValueError("找不到免密支付")
+    self.sleep(3, '等待免密支付')
+    if self.exists('支付成功'):
+      return True
+    else:
+      return False
 
   def buy_goods(self, params: Dict[str, Any]):
     pay_status = params.get('pay_status')
