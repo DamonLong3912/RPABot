@@ -153,11 +153,9 @@ class Taobao(Base):
         if not self.click(text=text, textMatches=textMatches):
           raise ValueError(f"找不到商品规格: {spec}")
         if not self.exists('免密支付'):
-          # 可能是之前选中了，现在反而是不选中了
-          # 重新选回来
+          log.info("可能之前选中了，现在反而是不选中了, 重新选回来")
           if not self.click(text=text, textMatches=textMatches):
             raise ValueError(f"找不到商品规格: {spec}")
-      return
       if not self.click('免密支付'):
         raise ValueError("找不到免密支付")
       time.sleep(10)
