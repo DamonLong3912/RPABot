@@ -14,6 +14,11 @@ import argparse
 import retry
 from lib.cli import cli
 from typing import Dict, Any, List
+import requests
+
+# 设置日志文件
+log_file = "logs/taobao.log"
+logging.basicConfig(level=logging.INFO, filename=log_file)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -24,13 +29,61 @@ class Taobao(Base):
   app_name = "淘宝"
   app_version = "10.10.0"
 
-  def deliver_goods(self, phone, name, address, position):
+  def deliver_goods(
+      self,
+      phone,
+      name,
+      address,
+      to_address_detail,
+      ad_code,
+      order_no,
+      to_latitude,
+      to_longitude,
+      function = "order",
+      mode = "calc",
+      weight = 1,
+      goods = [{"amount":1000,"name":"商品","qty":1}],
+      goods_count = 1,
+      shop_id = "2143343302_738862466",
+      skey = "132456",
+      callback_url = "",
+      order_remark = "到门打电话",
+      from_latitude = 113,
+      from_longitude = 22.53,
+    ):
     """
     代下单,直接配送到指定地址
     """
     # 调用下单api
-    log.info(f"deliver_goods: {phone}, {name}, {address}, {position}")
-    url = "http://h5.cx/api/?skey=132456&function=order&mode=call&dyOrderNo=123&orderNo=321&callMethod=1"
+    log.info(f"deliver_goods: {phone}, {name}, {address}, {to_address_detail}, {ad_code}, {shop_id}, {skey}, {callback_url}, {order_remark}, {goods_count}, {weight}, {goods}, {from_latitude}, {from_longitude}, {to_latitude}, {to_longitude}")
+    base_url = "http://h5.cx/api/"
+    # ?skey=132456&function=order&mode=calc&orderNo=321&callbackUrl=&shopId=2143343302_738862466&toName=测试&toPhone=17180421212&toAddress=广东深圳市白石洲&toAddressDetail=601&fromLatitude=113&fromLongitude=22.53&toLatitude=113.96788572&toLongitude=22.53978696&orderRemark=到门打电话&goodsCount=1&weight=1&goods=[{"amount":1000,"name":"商品","qty":1}]&adCode=深圳
+    params = {
+      "skey": skey,
+      "function": function,
+      "mode": mode,
+      "orderNo": order_no,
+      "callbackUrl": callback_url,
+      "shopId": shop_id,
+      "toName": name,
+      "toPhone": phone,
+      "toAddress": address,
+      "toAddressDetail": to_address_detail,
+      "fromLatitude": from_latitude,
+      "fromLongitude": from_longitude,
+      "toLatitude": to_latitude,
+      "toLongitude": to_longitude,
+      "orderRemark": order_remark,
+      "goodsCount": goods_count,
+      "weight": weight,
+      "goods": goods,
+      "adCode": ad_code
+    }
+    url = base_url + "?" + "&".join([f"{k}={v}" for k, v in params.items()])
+    log.info(f"url: {url}")
+    response = requests.get(url)
+    log.info(f"response: {response.json()}")
+    return response.json()
 
 
 
@@ -262,10 +315,10 @@ class Taobao(Base):
       return False
 
   def buy_goods(self, params: Dict[str, Any]):
-    pay_status = params.get('pay_status')
-    pay_list = params.get('pay_list')
-    # pay_list的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
-    pay_list = pay_list.split(',')
+    log.info(f"params: {params}")
+    specs = params.get('specs')
+    # specs的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
+    specs = specs.split(',')
 
 
     address = params.get('address')
@@ -275,13 +328,10 @@ class Taobao(Base):
 
     type = params.get('type') # luckin, mcdonals, starbucks
 
-
-
-    log.info(f"pay_list: {pay_list}")
-    for item in pay_list:
-      specs = item.split(':')
-      log.info(f"specs: {specs}")
-      if not self.buy_one_goods(specs):
+    log.info(f"specs: {specs}")
+    for spec in specs:
+      one_specs = spec.split(':')
+      if not self.buy_one_goods(one_specs):
         log.info("购买失败")
         raise ValueError("购买失败")
       if not self.use_coupon(type=type):
