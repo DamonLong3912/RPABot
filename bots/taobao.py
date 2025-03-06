@@ -107,11 +107,33 @@ class Taobao(Base):
     """
     log.info("open luckin store in browser")
     self.click('允许') # 获取定位权限
+
+    if self.exists('重新定位'):
+      log.info("有重新定位，是在门店选择页面")
+      self.d.click(109,347) # 重新选择城市
+      self.sleep(3, '等待重新选择城市')
+
     self.click('查找城市')
+    self.sleep(3, '等待查找城市')
     self.d.send_keys('苏州')
+    self.sleep(3, '等待输入')
+    xpath = "//android.widget.TextView[@text='苏州']"
+    selector = self.d.xpath(xpath)
+    selector.all()[0].click()
+
     self.click('输入门店名称')
     self.d.send_keys('吴江万象汇店')
 
+    self.d.click(579,641) # 点击第一个结果
+    self.sleep(3, '等待选择门店')
+
+    # 检查是否进入成功
+    if self.exists('经典饮品'):
+      log.info("进入成功")
+      return True
+    else:
+      log.info("进入失败")
+      return False
 
   def open_mcdonalds_store_in_browser(self):
     """
