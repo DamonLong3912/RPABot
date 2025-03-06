@@ -117,13 +117,20 @@ class Taobao(Base):
     """
     self.click('立即购买')
     for spec in specs:
-      if not self.exists(text=spec):
+      text = spec
+      textMatches = None
+      # 如果 spec 是 ^ 开头，则认为是正则表达式
+      if spec.startswith('^'):
+        textMatches = spec
+        text = None
+      if not self.exists(text=text, textMatches=textMatches):
         if not self.scroll_up_until(
-          lambda: self.exists(text=spec),
-          max_times=3
+          lambda: self.exists(text=text, textMatches=textMatches),
+          max_times=3,
+          scale=0.5
         ):
-            raise ValueError(f"找不到商品规格: {spec2}")
-      if not self.click(text=spec):
+            raise ValueError(f"找不到商品规格: {spec}")
+      if not self.click(text=text, textMatches=textMatches):
         raise ValueError(f"找不到商品规格: {spec}")
 
       if not self.click('免密支付'):
@@ -135,9 +142,11 @@ class Taobao(Base):
     pay_list = params.get('pay_list')
     # pay_list的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
     pay_list = pay_list.split(',')
+    log.info(f"pay_list: {pay_list}")
     for item in pay_list:
       specs = item.split(':')
-      self.buy_one_goods(item)
+      log.info(f"specs: {specs}")
+      self.buy_one_goods(specs)
 
   def back_until(self, interval=1, max_times=10):
       """商品主页"""
@@ -162,7 +171,16 @@ class Taobao(Base):
           return False
 
 
+  def buy_luckin_in_browser(self):
+    """
+    在浏览器中购买瑞幸
+    """
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
 
+    self.click('输入门店名称或地址搜索')
+    self.d.send_keys('吴江万象汇店')
 
 if __name__ == "__main__":
   bot = Taobao()
