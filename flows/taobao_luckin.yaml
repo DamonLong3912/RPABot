@@ -48,6 +48,10 @@ steps:
     params:
       pay_status: "${variables.var2}"
       pay_list: "${variables.var3}"  # 使用变量
+      phone: "${variables.phone}"
+      name: "${variables.name}"
+      address: "${variables.address}"
+      position: "${variables.position}"
 
 
 

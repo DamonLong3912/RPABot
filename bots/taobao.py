@@ -24,7 +24,7 @@ class Taobao(Base):
   app_name = "淘宝"
   app_version = "10.10.0"
 
-  def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁'):
+  def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁', type = 'luckin'):
     log.info("use coupon")
     self.app_start()
     # self.back_until(lambda: self.exists('消息'))
@@ -52,7 +52,7 @@ class Taobao(Base):
       self.sleep(10, '等待打开')
       if not self.open_store_in_browser():
         raise ValueError("打开门店失败")
-      self.buy_goods_in_browser(goods_name)
+      self.buy_goods_in_browser(goods_name, type)
     else:
       log.info("no url")
 
@@ -80,8 +80,15 @@ class Taobao(Base):
       log.info("进入门店失败")
       return False
 
+  def buy_goods_in_browser(self, type):
+    if type == 'luckin':
+      self.buy_luckin_in_browser()
+    elif type == 'starbucks':
+      self.buy_starbucks_in_browser()
+    else:
+      raise ValueError("不支持的类型")
 
-  def buy_goods_in_browser(self, good_name = '椰子丝绒燕麦拿铁'):
+  def buy_starbucks_in_browser(self, good_name = '椰子丝绒燕麦拿铁'):
     """
     获取商品列表
     """
@@ -142,11 +149,28 @@ class Taobao(Base):
     pay_list = params.get('pay_list')
     # pay_list的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
     pay_list = pay_list.split(',')
+
+
+    address = params.get('address')
+    position = params.get('position')
+    phone = params.get('phone')
+    name = params.get('name')
+
+    type = params.get('type') # luckin, mcdonals, starbucks
+
+
+
     log.info(f"pay_list: {pay_list}")
     for item in pay_list:
       specs = item.split(':')
       log.info(f"specs: {specs}")
-      self.buy_one_goods(specs)
+      if not self.buy_one_goods(specs):
+        log.info("购买失败")
+        raise ValueError("购买失败")
+      if not self.use_coupon(type=type):
+        raise ValueError("使用优惠券失败")
+      if not self.delivery_goods(address, position, phone, name):
+        raise ValueError("配送失败")
 
   def back_until(self, interval=1, max_times=10):
       """商品主页"""
