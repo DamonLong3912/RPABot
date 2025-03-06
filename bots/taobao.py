@@ -30,6 +30,7 @@ class Taobao(Base):
     代下单,直接配送到指定地址
     """
     # 调用下单api
+    log.info(f"deliver_goods: {phone}, {name}, {address}, {position}")
     pass
 
 
@@ -90,8 +91,7 @@ class Taobao(Base):
       log.info("进入门店失败")
       return False
 
-
-  def buy_goods_in_browser(self, good_name = '椰子丝绒燕麦拿铁'):
+  def buy_starbucks_in_browser(self, good_name = '椰子丝绒燕麦拿铁'):
     """
     获取商品列表
     """
@@ -109,6 +109,10 @@ class Taobao(Base):
         log.info("找不到添加至购物车")
     else:
       log.info("找不到商品")
+
+
+  def buy_goods_in_browser(self):
+    self.buy_starbucks_in_browser()
 
 
   def input_name(self, name: str = '张三'):
@@ -191,6 +195,22 @@ class Taobao(Base):
 
     self.click('输入门店名称或地址搜索')
     self.d.send_keys('吴江万象汇店')
+
+  def buy_kfc_in_browser(self):
+    """
+    在浏览器中购买肯德基
+    """
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
+
+  def buy_mcdonalds_in_browser(self):
+    """
+    在浏览器中购买麦当劳
+    """
+    self.click('允许') # 获取定位权限
+    self.click('查找城市')
+    self.d.send_keys('苏州')
 
 if __name__ == "__main__":
   bot = Taobao()
