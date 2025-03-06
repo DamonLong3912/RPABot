@@ -30,7 +30,7 @@ class Taobao(Base):
     """
     # 调用下单api
     log.info(f"deliver_goods: {phone}, {name}, {address}, {position}")
-    pass
+    url = "http://h5.cx/api/?skey=132456&function=order&mode=call&dyOrderNo=123&orderNo=321&callMethod=1"
 
 
 
