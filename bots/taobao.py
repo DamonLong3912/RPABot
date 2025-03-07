@@ -114,12 +114,8 @@ class Taobao(Base):
     log.info(f"url: {url}")
 
     # 格式化url
-    parts = url.split(",")
-    if len(parts) == 2:
-      url = parts[1]
-    else:
-      url = parts[0]
-
+    url = url.split("https://")[1]
+    url = "https://" + url
     log.info(f"formatted url: {url}")
 
     if url:
