@@ -379,6 +379,7 @@ class Taobao(Base):
       if not coupon_url:
         raise ValueError("获取优惠券失败")
       result.append(coupon_url)
+    log.info(f"result: {result}")
     return result
       # if not self.delivery_goods(address, position, phone, name):
       #   raise ValueError("配送失败")
