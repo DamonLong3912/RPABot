@@ -253,7 +253,7 @@ class Taobao(Base):
     在浏览器中选择商品
     """
 
-    location_name = '吴江万象汇'
+    location_name = self.params.get('store_name')
 
     self.click('确定')
     self.sleep(1, '等待打开')
@@ -288,7 +288,9 @@ class Taobao(Base):
     """
     获取商品列表
     """
-    goods_name = kwargs.get('goods_name', '椰子丝绒燕麦拿铁')
+    goods_name = kwargs.get('goods_name')
+    if not goods_name:
+      raise ValueError(f"找不到商品名称: {goods_name}")
     url = kwargs.get('url', None)
     log.info(f"goods_name: {goods_name}")
     ele = self.d(text=goods_name)
