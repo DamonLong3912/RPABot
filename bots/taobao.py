@@ -87,7 +87,7 @@ class Taobao(Base):
 
 
 
-  def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁', type = 'luckin'):
+  def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁', type = 'luckin', **kwargs):
     log.info("use coupon")
     self.app_start()
     # self.back_until(lambda: self.exists('消息'))
@@ -133,31 +133,32 @@ class Taobao(Base):
       else:
         raise ValueError("打开浏览器失败")
 
-      if not self.open_store_in_browser(type):
+      if not self.open_store_in_browser(type, url=url):
         raise ValueError("打开门店失败")
-      self.buy_goods_in_browser(goods_name, type)
+      self.buy_goods_in_browser(goods_name, type, url=url)
     else:
       log.info("no url")
 
 
 
-  def open_store_in_browser(self,type):
+  def open_store_in_browser(self,type, **kwargs):
     if type == 'starbucks':
-      return self.open_starbucks_store_in_browser()
+      return self.open_starbucks_store_in_browser(**kwargs)
     elif type == 'luckin':
-      return self.open_luckin_store_in_browser()
+      return self.open_luckin_store_in_browser(**kwargs)
     elif type == 'mcdonalds':
-      return self.open_mcdonalds_store_in_browser()
+      return self.open_mcdonalds_store_in_browser(**kwargs)
     elif type == 'kfc':
-      return self.open_kfc_store_in_browser()
+      return self.open_kfc_store_in_browser(**kwargs)
     else:
       raise ValueError("不支持的类型")
 
 
-  def open_luckin_store_in_browser(self):
+  def open_luckin_store_in_browser(self, **kwargs):
     """
     在浏览器中打开瑞幸门店
     """
+    url = kwargs.get('url', None)
     log.info("open luckin store in browser")
     self.click('允许') # 获取定位权限
 
@@ -188,7 +189,7 @@ class Taobao(Base):
       log.info("进入失败")
       return False
 
-  def open_mcdonalds_store_in_browser(self):
+  def open_mcdonalds_store_in_browser(self, **kwargs):
     """
     在浏览器中打开麦当劳门店
     """
@@ -200,7 +201,7 @@ class Taobao(Base):
     self.d.send_keys('苏州万象汇店')
 
 
-  def open_kfc_store_in_browser(self):
+  def open_kfc_store_in_browser(self, **kwargs):
     """
     在浏览器中打开肯德基门店
     """
@@ -212,7 +213,7 @@ class Taobao(Base):
     self.d.send_keys('苏州万象汇店')
 
 
-  def open_starbucks_store_in_browser(self):
+  def open_starbucks_store_in_browser(self, **kwargs):
     """
     在浏览器中选择商品
     """
@@ -236,22 +237,24 @@ class Taobao(Base):
       log.info("进入门店失败")
       return False
 
-  def buy_goods_in_browser(self, type):
+  def buy_goods_in_browser(self, type, **kwargs):
     if type == 'luckin':
-      self.buy_luckin_in_browser()
+      self.buy_luckin_in_browser(**kwargs)
     elif type == 'starbucks':
-      self.buy_starbucks_in_browser()
+      self.buy_starbucks_in_browser(**kwargs)
     elif type == 'mcdonalds':
-      self.buy_mcdonalds_in_browser()
+      self.buy_mcdonalds_in_browser(**kwargs)
     elif type == 'kfc':
-      self.buy_kfc_in_browser()
+      self.buy_kfc_in_browser(**kwargs)
     else:
       raise ValueError("不支持的类型")
 
-  def buy_starbucks_in_browser(self, good_name = '椰子丝绒燕麦拿铁'):
+  def buy_starbucks_in_browser(self, **kwargs):
     """
     获取商品列表
     """
+    goods_name = kwargs.get('goods_name', '椰子丝绒燕麦拿铁')
+    url = kwargs.get('url', None)
     log.info(f"goods_name: {goods_name}")
     ele = self.d(text=goods_name)
     if ele.exists():
@@ -362,10 +365,11 @@ class Taobao(Base):
           return False
 
 
-  def buy_luckin_in_browser(self, name='小黄油美式'):
+  def buy_luckin_in_browser(self, **kwargs):
     """
     在浏览器中购买瑞幸
     """
+    name = kwargs.get('name', '小黄油美式')
     if self.scroll_up_until(lambda: self.exists(text=name), max_times=10, scale=0.5):
       self.click(text=name)
       self.sleep(3, '等待打开')
@@ -381,7 +385,7 @@ class Taobao(Base):
       log.info("找不到商品")
       raise ValueError("找不到商品")
 
-  def buy_kfc_in_browser(self):
+  def buy_kfc_in_browser(self, **kwargs):
     """
     在浏览器中购买肯德基
     """
@@ -389,7 +393,7 @@ class Taobao(Base):
     self.click('查找城市')
     self.d.send_keys('苏州')
 
-  def buy_mcdonalds_in_browser(self):
+  def buy_mcdonalds_in_browser(self, **kwargs):
     """
     在浏览器中购买麦当劳
     """
