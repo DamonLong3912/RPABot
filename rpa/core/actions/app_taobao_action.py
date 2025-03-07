@@ -15,6 +15,7 @@ class TaobaoIntentAction(BaseAction):
         intent_url = params.get('intent_url')
         d = self.ui_animator
         ip = self.bot.device_ip
+        d.app_stop('com.taobao.taobao') # 强制退出
         cmd = f"am start -a android.intent.action.VIEW -d '{intent_url}'"
         logger.info(f"执行命令: {cmd}")
         d.shell(cmd)

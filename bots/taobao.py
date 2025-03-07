@@ -349,7 +349,7 @@ class Taobao(Base):
             raise ValueError(f"找不到商品规格: {spec}")
     if not self.click('免密支付'):
       raise ValueError("找不到免密支付")
-    self.sleep(3, '等待免密支付')
+    self.sleep(8, '等待免密支付')
     if self.exists('支付成功'):
       return True
     else:
@@ -376,7 +376,7 @@ class Taobao(Base):
       if not self.buy_one_goods(one_specs):
         log.info("购买失败")
         raise ValueError("购买失败")
-      coupon_url = self.use_coupon(type=type):
+      coupon_url = self.get_coupon_url(type=type)
       if not coupon_url:
         raise ValueError("获取优惠券失败")
       result.append(coupon_url)
