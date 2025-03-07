@@ -21,10 +21,11 @@ variables:
   address: 广东省广州市天河区先烈东路190号凯旋大厦1楼 如驿酒店(广州沙河顶服装城店)
   phone: "13719099099"
   name: 程家念
-  goods_name: "大杯:原味蒸气奶"
+  specs: "大杯:原味蒸气奶"
+  goods_name: "原味蒸气奶"
+  store_name: "广州天河区先烈东路"
   type: "starbucks"
   city: "广州"
-
 
 steps:
   - action: "taobao_intent"
