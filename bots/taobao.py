@@ -88,7 +88,7 @@ class Taobao(Base):
 
 
 
-  def use_coupon(self, goods_name = '椰子丝绒燕麦拿铁', type = 'luckin', **kwargs):
+  def get_coupon_url(self, goods_name = '椰子丝绒燕麦拿铁', type = 'luckin', **kwargs):
     log.info("use coupon")
     self.app_start()
     # self.back_until(lambda: self.exists('消息'))
@@ -120,6 +120,12 @@ class Taobao(Base):
     log.info(f"formatted url: {url}")
 
     if url:
+      return url
+    else:
+      return None
+
+    """
+    if url:
       self.d.open_url(url)
       self.sleep(10, '等待打开')
 
@@ -135,6 +141,7 @@ class Taobao(Base):
       self.buy_goods_in_browser(goods_name, type, url=url)
     else:
       log.info("no url")
+    """
 
 
 
@@ -363,15 +370,20 @@ class Taobao(Base):
     type = params.get('type') # luckin, mcdonals, starbucks
 
     log.info(f"specs: {specs}")
+    result = []
     for spec in specs:
       one_specs = spec.split(':')
       if not self.buy_one_goods(one_specs):
         log.info("购买失败")
         raise ValueError("购买失败")
-      if not self.use_coupon(type=type):
-        raise ValueError("使用优惠券失败")
-      if not self.delivery_goods(address, position, phone, name):
-        raise ValueError("配送失败")
+      coupon_url = self.use_coupon(type=type):
+      if not coupon_url:
+        raise ValueError("获取优惠券失败")
+      result.append(coupon_url)
+    log.info(f"result: {result}")
+    return result
+      # if not self.delivery_goods(address, position, phone, name):
+      #   raise ValueError("配送失败")
 
   def back_until(self, interval=1, max_times=10):
       """商品主页"""
