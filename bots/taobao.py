@@ -163,10 +163,11 @@ class Taobao(Base):
       self.click('允许') # 获取定位权限
       self.sleep(1, '等待允许')
       # 继续编写购买流程
-      self.d.click(123,816) # 重新选择城市
+      self.d.click(113,816) # 重新选择城市
       self.sleep(3, '等待重新选择城市')
       self.click('请输入城市')
       self.sleep(1, '等待输入城市')
+      breakpoint()
       self.d.send_keys(self.params.get('city'))
       self.sleep(3, '等待结果')
       self.d.click(564,626) # 点击第一个结果
