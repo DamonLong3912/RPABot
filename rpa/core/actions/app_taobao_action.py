@@ -34,4 +34,5 @@ class TaobaoPayListAction(BaseAction):
     """淘宝选购商品支付操作动作"""
     def execute(self, params: Dict[str, Any]) -> None:
         taobao = Taobao(adb_address=self.bot.device_ip)
+        taobao.params = params
         taobao.buy_goods(params)

@@ -28,6 +28,7 @@ class Taobao(Base):
   package_name = "com.taobao.taobao"
   app_name = "淘宝"
   app_version = "10.10.0"
+  params = {}
 
   def deliver_goods(
       self,
@@ -160,9 +161,27 @@ class Taobao(Base):
     if "db.mdlvip.cn" in url:
       log.info("open luckin store in browser")
       self.click('允许') # 获取定位权限
-      self.d.open_url(url)
-      self.sleep(10, '等待打开')
-      return True
+      self.sleep(1, '等待允许')
+      # 继续编写购买流程
+      self.d.click(123,816) # 重新选择城市
+      self.sleep(3, '等待重新选择城市')
+      self.click('请输入城市')
+      self.sleep(1, '等待输入城市')
+      self.d.send_keys(self.params.get('city'))
+      self.sleep(3, '等待结果')
+      self.d.click(564,626) # 点击第一个结果
+      self.sleep(3, '等待选择门店')
+      self.click('请输入内容')
+      self.sleep(1, '等待输入内容')
+      self.d.send_keys(self.params.get('shop_name'))
+      self.sleep(3, '等待搜索结果')
+      self.d.click(626,1143) # 点击第一个结果
+      self.click('下单')
+      self.sleep(1, '等待下单')
+      self.click('选择')
+      # ...
+      self.click('确认下单')
+      return False
 
     if "lk.cafe.paytribe.cn" in url:
       log.info("open luckin store in browser")
