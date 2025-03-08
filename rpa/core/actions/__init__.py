@@ -39,7 +39,7 @@ from .app_actions import (
     WaitForAppInstalledAction,
 )
 from .node_actions import (
-    GetNodeDescendantsContentAction, 
+    GetNodeDescendantsContentAction,
     WaitAndClickNodeAction,
     GetNodeByPathAction,
     GetListItemBoundsAction
@@ -48,7 +48,8 @@ from .node_actions import (
 from .app_taobao_action import (
     TaobaoSearchAction,
     TaobaoPayListAction,
-    TaobaoCustomerServiceUrlPayAction
+    TaobaoIntentAction,
+    TaobaoCustomerServiceUrlPayAction,
 )
 
 # 动作类型映射表
@@ -88,11 +89,12 @@ ACTION_MAP = {
     'validate_variable': ValidateVariableAction,
     'TaobaoSearchAction': TaobaoSearchAction,
     'TaobaoPayListAction': TaobaoPayListAction,
-    'TaobaoCustomerServiceUrlPayAction': TaobaoCustomerServiceUrlPayAction
+    'TaobaoCustomerServiceUrlPayAction': TaobaoCustomerServiceUrlPayAction,
+    "taobao_intent": TaobaoIntentAction
 }
 
 def get_action_class(action_type: str) -> type:
     """获取动作类"""
     if action_type not in ACTION_MAP:
         raise ValueError(f"未知的动作类型: {action_type}")
-    return ACTION_MAP[action_type] 
+    return ACTION_MAP[action_type]

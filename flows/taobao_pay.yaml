@@ -5,35 +5,52 @@ description: "打开手机淘宝并搜索进入指定商品页进行下单和打
 
 # 添加设备配置
 device:
-  ip: "10.166.23.39:5678"
+  # ip: "10.166.135.205:5678"
+  ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
+  # ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
+  # ip: e5eb6a80
   settings:
     wait_timeout: 10
     click_post_delay: 0.3
 
 # 默认变量，可被API传入的变量覆盖
 variables:
-  var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」
-点击链接直接打开 或者 淘宝搜索直接打开"
-  var2: "星巴克"   
-  var3: "大杯:原味蒸汽奶,中杯:拿铁/巴旦木/燕麦拿铁"
+  # var1: "【淘宝】47%买家复购 https://e.tb.cn/h.TFGTwMBDsqA1wzR?tk=RYJbePMs4KL CA381 「星巴克中杯大杯电子券优惠I券咖啡券伙伴券星礼包星冰乐啡快代下单」"
+  var1: "【淘宝】52%买家复购 https://e.tb.cn/h.TEhTXl1blQS23xG?tk=LtkhelKTtOn CZ001 「星巴克电子券咖快啡快代下单咖啡兑换劵优惠卷中大杯自助门店自取」"
+  # intent_url: "adb -s adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp shell am start -a android.intent.action.VIEW -d "taobao://item.taobao.com/item.htm?id=693715128230" "
+  intent_url: "taobao://item.taobao.com/item.htm?id=693715128230"
+  # intent_url: "taobao://item.taobao.com/item.htm?id=727352428927"
+  # var1: "大白饭票 星巴克电子券咖快啡快代下单咖啡兑换劵优惠卷中大杯自助门店自取"
+  var2: "星巴克"
+  # var2: "麦当劳"
+  # var3: "超大杯:原味蒸气奶,中杯:抹茶可可/摩卡可可星冰乐"
+  var3: "超大杯:原味蒸气奶"
+  # var3: "【限时特价】中份薯条一盒"
+
+  position: [23.14603, 113.30598]
+  address: 广东省广州市天河区先烈东路190号凯旋大厦1楼 如驿酒店(广州沙河顶服装城店)
+  phone: "13719099099"
+  name: 程家念
+
 
 steps:
-  - name: "打开淘宝"
-    action: "start_app"
-    params:
-      package: "com.taobao.taobao"
+  # - name: "打开淘宝"
+  #  action: "start_app"
+  #  params:
+  #    package: "com.taobao.taobao"
 
-  - action: TaobaoSearchAction
-    name: "点击搜索栏并搜索进入指定商品页"
+  # - action: TaobaoSearchAction
+  #  name: "点击搜索栏并搜索进入指定商品页"
+  #  params:
+  #    search_text: "${variables.var1}"  # 使用变量
+
+  - action: "taobao_intent"
+    name: "打开淘宝并进入指定商品"
     params:
-      search_text: "${variables.var1}"  # 使用变量
+      intent_url: "${variables.intent_url}"
+
   - action: TaobaoPayListAction
     name: "点击立即购买选择商品并下单"
-    params:
-      pay_status: "${variables.var2}"
-      pay_list: "${variables.var3}"  # 使用变量
-  - action: TaobaoCustomerServiceUrlPayAction
-    name: "打开客服链窗口并获取链接选择商品"
     params:
       pay_status: "${variables.var2}"
       pay_list: "${variables.var3}"  # 使用变量

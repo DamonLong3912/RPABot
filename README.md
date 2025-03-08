@@ -287,3 +287,16 @@ python run.py --flow tests/flows/flow_actions_test.yaml
 # 运行设备管理测试
 python run.py --flow tests/flows/device_manager_test.yaml
 ```
+
+
+
+
+
+
+```bash
+curl -X POST http://localhost:5001/api/flow/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "flow_path”: "flows/taobao_luckin.yaml"
+  }'
+```
