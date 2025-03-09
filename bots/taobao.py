@@ -92,27 +92,45 @@ class Taobao(Base):
     log.info("use coupon")
     self.app_start()
     # self.back_until(lambda: self.exists('消息'))
-    self.click('消息')
-    self.click('大白饭票')
-    self.sleep(3, '等待大白饭票加载')
-    eles = self.d(descriptionMatches="去领取|去查看")
-    # 获取最后一个
-    last_ele = eles[-1]
-    last_ele.click()
-    self.sleep(3, '等待领取')
+    if self.d(description='消息').wait(timeout=5):
+      self.d(description='消息').click()
+      if self.d(text='뉭').wait(timeout=5):
+        time.sleep(1)
+        if self.d(description='大白饭票').wait(timeout=5):
+          self.d(description='大白饭票').click()
+
+
+
+
+    # 等待输入框出现 证明进入客服界面
+    if self.d(resourceId='com.taobao.taobao:id/mp_chat_input_id').wait(timeout=5):
+      eles = self.d(descriptionMatches="去领取|去查看")
+      # 获取最后一个
+      last_ele = eles[-1]
+      last_ele.click()
+      
     if self.exists('提取错误'):
       log.info("提取错误")
       return
+
+    #是否有授权
+    if self.d(resourceId='com.taobao.taobao.triver_taobao:id/open_auth_btn_grant',text='确认授权').wait(timeout=5):
+      self.d(resourceId='com.taobao.taobao.triver_taobao:id/open_auth_btn_grant',text='确认授权').click()
+
+
+
     self.click('确认')
     self.click('我知道了')
     self.click('查看文本')
-    self.sleep(1, '等待查看文本')
-    self.click('全部复制')
-    self.sleep(1, '等待复制')
-    if self.exists('剪贴板信息'):
-      self.click('同意')
+
+
+
+    if self.d(text='全部复制').wait(timeout=7):
+      self.d(text='全部复制').click()
+      if self.exists('剪贴板信息'):
+        self.click('同意')
     url = self.d.clipboard
-    log.info(f"url: {url}")
+    # log.info(f"url: {url}")
 
     # 格式化url
     url = url.split("https://")[1]
@@ -323,12 +341,15 @@ class Taobao(Base):
     """
     购买一个商品
     """
-    if not self.click('立即购买'):
+    if not self.d( text='立即购买').wait(timeout=5):
       if self.click('去购买'):
         self.sleep(3, '等待去购买')
       else:
         raise ValueError("找不到立即购买或去购买")
+    else:
+      self.d( text='立即购买').click()
     log.info(f"specs: {specs}")
+
     for spec in specs:
       text = spec
       textMatches = None
@@ -352,35 +373,43 @@ class Taobao(Base):
     self.sleep(8, '等待免密支付')
     if self.exists('支付成功'):
       return True
+    
+    self.sleep(5, '等待免密支付')
+    if self.exists('支付成功'):
+      return True
     else:
       return False
 
   def buy_goods(self, params: Dict[str, Any]):
     log.info(f"params: {params}")
     specs = params.get('specs')
-    # specs的格式为："中杯:原味蒸汽奶,大杯:原味蒸汽奶" 循环用:分割
+    # specs的格式为："中杯::原味蒸汽奶,大杯:原味蒸汽奶" 循环用::分割
     specs = specs.split(',')
 
 
-    address = params.get('address')
-    position = params.get('position')
-    phone = params.get('phone')
-    name = params.get('name')
+    # address = params.get('address')
+    # position = params.get('position')
+    # phone = params.get('phone')
+    # name = params.get('name')
 
     type = params.get('type') # luckin, mcdonals, starbucks
 
     log.info(f"specs: {specs}")
     result = []
     for spec in specs:
-      one_specs = spec.split(':')
+      one_specs = spec.split('::')
+
+      #去掉one_specs最后一个参数
+      one_specs = one_specs[:-1]
+
       if not self.buy_one_goods(one_specs):
         log.info("购买失败")
         raise ValueError("购买失败")
       coupon_url = self.get_coupon_url(type=type)
       if not coupon_url:
-        raise ValueError("获取优惠券失败")
-      result.append(coupon_url)
-    log.info(f"result: {result}")
+        raise ValueError("获取点餐链接失败")
+      result.append('商品:' + spec + '\n点餐链接:' + coupon_url+'\n')
+    # log.info(f"result: {result}")
     return result
       # if not self.delivery_goods(address, position, phone, name):
       #   raise ValueError("配送失败")

@@ -9,7 +9,7 @@ device:
   # ip: adb-2b09dc5a-RCIgsw._adb-tls-connect._tcp
   # ip: adb-e5eb6a80-zdp4sK._adb-tls-connect._tcp
   # ip: e5eb6a80
-  ip: 2b09dc5a
+  ip: 192.168.0.104:5678
   settings:
     wait_timeout: 10
     click_post_delay: 0.3
@@ -26,9 +26,10 @@ variables:
   store_name: "广州天河区先烈东路"
   type: "starbucks"
   city: "广州"
+  order_id: "1234"
 
 steps:
-  - action: "taobao_intent"
+  - action: "TaobaoIntentAction"
     name: "打开淘宝并进入指定商品"
     params:
       intent_url: "${variables.intent_url}"
@@ -43,3 +44,4 @@ steps:
       name: "${variables.name}"
       type: "${variables.type}"
       city: "${variables.city}"
+      order_id: "${variables.order_id}"

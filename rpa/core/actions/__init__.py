@@ -49,7 +49,6 @@ from .app_taobao_action import (
     TaobaoSearchAction,
     TaobaoPayListAction,
     TaobaoIntentAction,
-    TaobaoCustomerServiceUrlPayAction,
 )
 
 # 动作类型映射表
@@ -89,8 +88,7 @@ ACTION_MAP = {
     'validate_variable': ValidateVariableAction,
     'TaobaoSearchAction': TaobaoSearchAction,
     'TaobaoPayListAction': TaobaoPayListAction,
-    'TaobaoCustomerServiceUrlPayAction': TaobaoCustomerServiceUrlPayAction,
-    "taobao_intent": TaobaoIntentAction
+    "TaobaoIntentAction": TaobaoIntentAction
 }
 
 def get_action_class(action_type: str) -> type:

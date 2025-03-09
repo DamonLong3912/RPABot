@@ -41,15 +41,15 @@ def setup_uiautomator2(device_ip: str) -> bool:
     logger = get_logger(__name__)
     try:
         # 设置 adb 路径
-        platform_tools_path = Path(__file__).parent / 'tools' / 'platform-tools'
-        adb_path = platform_tools_path / 'adb'
+        #安装环境时已经设置好
+        # platform_tools_path = Path(__file__).parent / 'tools' / 'platform-tools'
+        # adb_path = platform_tools_path / 'adb'
 
-        if not adb_path.exists():
-            logger.error(f"ADB工具不存在: {adb_path}")
-            return False
-
-        # 将 platform-tools 添加到环境变量
-        os.environ['PATH'] = f"{platform_tools_path};{os.environ['PATH']}"
+        # if not adb_path.exists():
+        #     logger.error(f"ADB工具不存在: {adb_path}")
+        #     return False
+        # # 将 platform-tools 添加到环境变量
+        # os.environ['PATH'] = f"{platform_tools_path};{os.environ['PATH']}"
 
         logger.info(f"正在初始化设备 {device_ip}")
 

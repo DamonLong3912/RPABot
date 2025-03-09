@@ -7,9 +7,12 @@ from rpa.utils.device_manager import DeviceManager
 import traceback
 import yaml
 import os
-import glob  # 新增导入
+import glob
 from rpa.utils.db import DatabaseManager 
 from run import load_config
+import requests
+import time
+import json
 
 app = Flask(__name__)
 logger = get_logger(__name__)
@@ -19,6 +22,15 @@ running_tasks: Dict[str, Dict[str, Any]] = {}
 
 # 在文件顶部定义全局的 device_manager
 device_manager = DeviceManager()
+
+def get_config():
+    """从config.yaml获取配置"""
+    try:
+        with open('config.yaml', 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logger.error(f"读取配置文件失败: {str(e)}")
+        return {}
 
 def run_flow(flow_config: Dict[str, Any], task_id: str, device_ip: str, start_step_index: int = 0):
     """在独立线程中运行流程
@@ -235,9 +247,118 @@ def upload_flow():
 
     return jsonify({"success": False, "message": "文件格式不正确，必须为 YAML 文件"}), 400
 
+def poll_external_api():
+    """轮询外部接口获取待处理订单"""
+    config = get_config()
+    poller_settings = config.get('poller', {})
+    
+    # 定义服务提供商对应的流程文件映射
+    provider_flow_map = {
+        '星巴克': 'flows/taobao_starbucks.yaml',
+        '瑞幸': 'flows/taobao_luckin.yaml',
+        '麦当劳': 'flows/taobao_mcdonals.yaml'
+    }
+
+    def start_flow_with_retry(flow_data, max_retries=float('inf'), retry_interval=5):
+        """启动流程并在遇到500错误时重试
+        
+        Args:
+            flow_data: 流程数据
+            max_retries: 最大重试次数，默认无限重试
+            retry_interval: 重试间隔时间（秒）
+        """
+        retry_count = 0
+        while True:
+            try:
+                response = requests.post('http://localhost:5000/api/flow/start', json=flow_data)
+                
+                if response.status_code == 500:
+                    retry_count += 1
+                    logger.warning(f"启动流程返回500错误，这是第{retry_count}次重试")
+                    time.sleep(retry_interval)
+                    continue
+                    
+                if response.status_code == 200:
+                    logger.info(f"成功启动{flow_data['variables']['service_provider']}订单处理流程: {flow_data['task_id']}")
+                    return True
+                else:
+                    logger.error(f"启动流程失败: {response.text}")
+                    return False
+                    
+            except Exception as e:
+                logger.error(f"调用流程API时出错: {str(e)}")
+                return False
+    
+    while poller_settings.get('auto_start', False):
+        try:
+            url = poller_settings.get('api_url')
+            if not url:
+                logger.error("未配置轮询接口URL")
+                return
+                
+            response = requests.get(url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('code') == 200:
+                    orders = data.get('data', [])
+                    if not orders:
+                        logger.info("当前没有待处理的订单")
+                    else:
+                        logger.info(f"获取到待处理订单")
+                        
+                        # 只处理第一条数据
+                        order = orders[0]
+                        logger.info(f"获取到待处理订单: {order.get('id')}")
+                        
+                        try:
+                            # 获取服务提供商
+                            service_provider = order.get('serviceProvider', '')
+                            
+                            # 根据服务提供商选择对应的流程文件
+                            flow_path = provider_flow_map.get(service_provider)
+                            
+                            if not flow_path:
+                                logger.error(f"未找到服务提供商 {service_provider} 对应的流程配置文件")
+                                continue
+                                
+                            flow_data = {
+                                "flow_path": flow_path,
+                                "task_id": order.get('id'),
+                                "variables": {
+                                    "order_id": order.get('id'),
+                                    "specs": order.get('productList'),
+                                    "service_provider": service_provider
+                                }
+                            }
+                            
+                            # 使用重试机制启动流程
+                            start_flow_with_retry(flow_data)
+                            
+                        except Exception as e:
+                            logger.error(f"处理订单 {order.get('orderNum')} 时出错: {str(e)}")
+            else:
+                logger.error(f"请求外部接口失败: {response.status_code}")
+                
+        except Exception as e:
+            logger.error(f"轮询外部接口时出错: {str(e)}")
+            logger.error(traceback.format_exc())
+        
+        # 重新获取配置，以便支持动态修改配置
+        config = get_config()
+        poller_settings = config.get('poller', {})
+        # 等待下一次轮询
+        time.sleep(poller_settings.get('polling_interval', 5))
+
 def start_server(host='0.0.0.0', port=5000):
     """启动API服务器"""
-    
+
+    logger.info("启动轮询任务...")
+    # 在单独的线程中启动轮询，不阻塞服务器启动
+    polling_thread = threading.Thread(target=poll_external_api, daemon=True)
+    polling_thread.start()
+    logger.info("轮询任务已启动")
+
     # 自动获取flows和tests/flows下的yaml文件中的IP并注册设备
     flow_paths = glob.glob('flows/*.yaml') + glob.glob('tests/flows/*.yaml')
     for flow_path in flow_paths:
@@ -252,7 +373,5 @@ def start_server(host='0.0.0.0', port=5000):
         except Exception as e:
             logger.error(f"加载设备配置失败: {str(e)}")
     
-    # 初始化数据库连接 - 如果在run.py中已经初始化，这里可以省略
-    # DatabaseManager.init_from_config('config.yaml')
-    
-    app.run(host=host, port=port) 
+    app.run(host=host, port=port)
+        
