@@ -135,6 +135,11 @@ def main(flow_config: Dict[str, Any], device_ip: str, start_step_index: int = 0,
 
     try:
 
+                # 加载全局配置
+        global_config = load_config('config.yaml')
+        # 合并全局配置和流程配置
+        flow_config.update(global_config)
+
         # 直接使用传入的设备IP创建机器人实例
         bot = BaseBot(flow_config, device_ip,task_id)
 
@@ -202,12 +207,6 @@ def run():
         logger.info(f"流程版本: {flow_config.get('version')}")
         logger.info(f"流程描述: {flow_config.get('description')}")
 
-
-
-        # 加载全局配置
-        global_config = load_config(args.config or 'config.yaml')
-        # 合并全局配置和流程配置
-        flow_config.update(global_config)
 
 
         # 从flow配置中获取设备信息

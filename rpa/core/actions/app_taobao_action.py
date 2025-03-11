@@ -50,7 +50,7 @@ class TaobaoPayListAction(BaseAction):
             order_id = params.get('order_id')
                 
             # 将urls列表转换为字符串,每个map后面加换行
-            urls_str = ',\n'.join(map(str, urls))
+            urls_str = '\n'.join(map(str, urls))
             
             # 准备上报数据
             data = {

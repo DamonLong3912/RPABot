@@ -252,11 +252,11 @@ def poll_external_api():
     config = get_config()
     poller_settings = config.get('poller', {})
     
-    # 定义服务提供商对应的流程文件映射
-    provider_flow_map = {
-        '星巴克': 'flows/taobao_starbucks.yaml',
-        '瑞幸': 'flows/taobao_luckin.yaml',
-        '麦当劳': 'flows/taobao_mcdonals.yaml'
+    # 定义服务提供商对应的店铺链接
+    provider_url_map = {
+        '星巴克': 'taobao://item.taobao.com/item.htm?id=693715128230',
+        '瑞幸': 'taobao://item.taobao.com/item.htm?id=600254519991',
+        '麦当劳': 'taobao://item.taobao.com/item.htm?id=727352428927'
     }
 
     def start_flow_with_retry(flow_data, max_retries=float('inf'), retry_interval=5):
@@ -270,7 +270,7 @@ def poll_external_api():
         retry_count = 0
         while True:
             try:
-                response = requests.post('http://localhost:5000/api/flow/start', json=flow_data)
+                response = requests.post(config.get('base_url','') + '/api/flow/start', json=flow_data)
                 
                 if response.status_code == 500:
                     retry_count += 1
@@ -291,7 +291,7 @@ def poll_external_api():
     
     while poller_settings.get('auto_start', False):
         try:
-            url = poller_settings.get('api_url')
+            url = config.get('remote_api','') + poller_settings.get('api_url')
             if not url:
                 logger.error("未配置轮询接口URL")
                 return
@@ -315,17 +315,18 @@ def poll_external_api():
                             # 获取服务提供商
                             service_provider = order.get('serviceProvider', '')
                             
-                            # 根据服务提供商选择对应的流程文件
-                            flow_path = provider_flow_map.get(service_provider)
+                            # 获取店铺链接
+                            intent_url = provider_url_map.get(service_provider)
                             
-                            if not flow_path:
-                                logger.error(f"未找到服务提供商 {service_provider} 对应的流程配置文件")
+                            if not intent_url:
+                                logger.error(f"未找到服务提供商 {service_provider} ")
                                 continue
                                 
                             flow_data = {
-                                "flow_path": flow_path,
+                                "flow_path": 'flows/taobao_pay.yaml',
                                 "task_id": order.get('id'),
                                 "variables": {
+                                    "intent_url": intent_url,
                                     "order_id": order.get('id'),
                                     "specs": order.get('productList'),
                                     "service_provider": service_provider

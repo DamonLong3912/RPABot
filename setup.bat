@@ -45,8 +45,8 @@ adb devices
 
 :: 安装依赖
 echo 安装依赖...
-python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
-pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+:: python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+:: pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 pip install -r requirements.txt
 
 :: 创建必要的目录

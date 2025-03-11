@@ -90,15 +90,16 @@ class Taobao(Base):
 
   def get_coupon_url(self, goods_name = '椰子丝绒燕麦拿铁', type = 'luckin', **kwargs):
     log.info("use coupon")
-    self.app_start()
-    # self.back_until(lambda: self.exists('消息'))
-    if self.d(description='消息').wait(timeout=5):
-      self.d(description='消息').click()
-      if self.d(text='뉭').wait(timeout=5):
-        time.sleep(1)
-        if self.d(description='大白饭票').wait(timeout=5):
-          self.d(description='大白饭票').click()
-
+    # self.app_start()
+    # # self.back_until(lambda: self.exists('消息'))
+    # if self.d(description='消息').wait(timeout=5):
+    #   self.d(description='消息').click()
+    #   if self.d(text='뉭').wait(timeout=5):
+    #     time.sleep(5)
+    #     if self.d(description='大白饭票').wait(timeout=5):
+    #       self.d(description='大白饭票').click()
+    if self.d(text='客服').wait(timeout=5):
+      self.d(text='客服').click()
 
 
 
@@ -349,7 +350,28 @@ class Taobao(Base):
     else:
       self.d( text='立即购买').click()
     log.info(f"specs: {specs}")
+    time.sleep(1)
 
+
+    #大力向下滑动，屏幕向上滚动，避免前面商品已经划到底部
+    # 获取屏幕尺寸
+    screen_size = self.d.window_size()
+    screen_width = screen_size[0]
+    screen_height = screen_size[1]
+  # 执行2次大力向下滑动
+    for _ in range(2):
+      self.d.swipe(
+          screen_width * 0.5,   # 起点x：屏幕中间
+          screen_height * 0.5,  # 起点y：屏幕中间
+          screen_width * 0.5,   # 终点x：与起点相同
+          screen_height * 0.8,  # 终点y：屏幕底部偏上位置
+          duration=0.1  # 快速滑动
+      )
+    time.sleep(1)  # 等待页面滚动完成
+
+
+
+    
     for spec in specs:
       text = spec
       textMatches = None
@@ -368,20 +390,24 @@ class Taobao(Base):
           log.info("可能之前选中了，现在反而是不选中了, 重新选回来")
           if not self.click(text=text, textMatches=textMatches):
             raise ValueError(f"找不到商品规格: {spec}")
-    if not self.click('免密支付'):
-      raise ValueError("找不到免密支付")
-    self.sleep(8, '等待免密支付')
-    if self.exists('支付成功'):
-      return True
+          
+    # if not self.click('免密支付￥'):
+    #   raise ValueError("找不到免密支付")
+    # self.sleep(8, '等待免密支付')
+    # if self.exists('支付成功'):
+    #   return True
     
-    self.sleep(5, '等待免密支付')
-    if self.exists('支付成功'):
-      return True
-    else:
-      return False
+    # self.sleep(5, '等待免密支付')
+    # if self.exists('支付成功'):
+    #   return True
+    # else:
+    #   return False
+    return True
 
   def buy_goods(self, params: Dict[str, Any]):
-    log.info(f"params: {params}")
+
+
+
     specs = params.get('specs')
     # specs的格式为："中杯::原味蒸汽奶,大杯:原味蒸汽奶" 循环用::分割
     specs = specs.split(',')
@@ -397,6 +423,9 @@ class Taobao(Base):
     log.info(f"specs: {specs}")
     result = []
     for spec in specs:
+
+      self.back_until()
+
       one_specs = spec.split('::')
 
       #去掉one_specs最后一个参数
@@ -405,10 +434,13 @@ class Taobao(Base):
       if not self.buy_one_goods(one_specs):
         log.info("购买失败")
         raise ValueError("购买失败")
+      
+      self.back_until()
       coupon_url = self.get_coupon_url(type=type)
       if not coupon_url:
         raise ValueError("获取点餐链接失败")
       result.append('商品:' + spec + '\n点餐链接:' + coupon_url+'\n')
+      
     # log.info(f"result: {result}")
     return result
       # if not self.delivery_goods(address, position, phone, name):
@@ -419,12 +451,11 @@ class Taobao(Base):
       d = self.d
       current = 1
       while True:
-          if not self.exists('立即购买'):
+          if not self.d(text='立即购买') or not self.d(text='客服'):
               d.press("back")
               time.sleep(interval)
               current += 1
               if current > max_times:
-                  logger.info("reach max times")
                   break
           else:
               break

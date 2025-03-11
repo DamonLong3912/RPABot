@@ -5,7 +5,7 @@ description: "测试UI相关动作"
 # 添加设备配置
 device:
   # 测试环境使用模拟器
-  ip: "10.217.129.236:5678"
+  ip: ""
   # 设备配置参数
   settings:
     wait_timeout: 10  # 测试用较短的超时时间
