@@ -391,18 +391,18 @@ class Taobao(Base):
           if not self.click(text=text, textMatches=textMatches):
             raise ValueError(f"找不到商品规格: {spec}")
           
-    # if not self.click('免密支付￥'):
-    #   raise ValueError("找不到免密支付")
-    # self.sleep(8, '等待免密支付')
-    # if self.exists('支付成功'):
-    #   return True
+    if not self.click('免密支付'):
+      raise ValueError("找不到免密支付")
+    self.sleep(8, '等待免密支付')
+    if self.exists('支付成功'):
+      return True
     
-    # self.sleep(5, '等待免密支付')
-    # if self.exists('支付成功'):
-    #   return True
-    # else:
-    #   return False
-    return True
+    self.sleep(5, '等待免密支付')
+    if self.exists('支付成功'):
+      return True
+    else:
+      return False
+
 
   def buy_goods(self, params: Dict[str, Any]):
 

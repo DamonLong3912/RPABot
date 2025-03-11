@@ -59,8 +59,8 @@ class TaobaoPayListAction(BaseAction):
                 "orderStatus": 11
             }
             
-            # url = 'https://robot.mbmzone.com/guangqi-ai/api/rpa/putOrder'
-            url = 'http://localhost:8088/guangqi-ai/api/rpa/putOrder'
+            url = 'https://robot.mbmzone.com/guangqi-ai/api/rpa/putOrder'
+            # url = 'http://localhost:8088/guangqi-ai/api/rpa/putOrder'
             
             # 发送POST请求上报数据
             response = requests.post(url, json=data)
