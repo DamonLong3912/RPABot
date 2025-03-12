@@ -428,8 +428,10 @@ class Taobao(Base):
 
       one_specs = spec.split('::')
 
-      #去掉one_specs最后一个参数
-      one_specs = one_specs[:-1]
+      # 获取最后一个元素作为数字
+      count = int(one_specs[-1])
+      # 保留前count个元素
+      one_specs = one_specs[:count]
 
       if not self.buy_one_goods(one_specs):
         log.info("购买失败")
