@@ -105,10 +105,35 @@ class Taobao(Base):
 
     # 等待输入框出现 证明进入客服界面
     if self.d(resourceId='com.taobao.taobao:id/mp_chat_input_id').wait(timeout=5):
-      eles = self.d(descriptionMatches="去领取|去查看")
-      # 获取最后一个
-      last_ele = eles[-1]
-      last_ele.click()
+      # 第一次先下滑一下，避免底部卡片挡住按钮
+      screen_size = self.d.window_size()
+      self.d.swipe(
+          screen_size[0] * 0.5,  # 起点x：屏幕中间
+          screen_size[1] * 0.6,  # 起点y：屏幕中间偏下
+          screen_size[0] * 0.5,  # 终点x：与起点相同
+          screen_size[1] * 0.4,  # 终点y：屏幕中间偏上
+          duration=0.1  # 快速滑动
+      )
+      time.sleep(0.5)  # 等待滑动完成
+
+      # 循环3次尝试查找元素
+      for i in range(3):
+          eles = self.d(descriptionMatches="去领取|去查看")
+          if len(eles) > 0:
+              # 找到元素则点击最后一个并退出循环
+              last_ele = eles[-1]
+              last_ele.click()
+              break
+          else:
+              # 找不到则往上滑动一点
+              self.d.swipe(
+                  screen_size[0] * 0.5,  # 起点x：屏幕中间
+                  screen_size[1] * 0.4,  # 起点y：屏幕中间偏上
+                  screen_size[0] * 0.5,  # 终点x：与起点相同
+                  screen_size[1] * 0.6,  # 终点y：屏幕中间偏下
+                  duration=0.1  # 快速滑动
+              )
+              time.sleep(0.5)  # 等待滑动完成
       
     if self.exists('提取错误'):
       log.info("提取错误")
@@ -342,15 +367,15 @@ class Taobao(Base):
     """
     购买一个商品
     """
-    if not self.d( text='立即购买').wait(timeout=5):
-      if self.click('去购买'):
-        self.sleep(3, '等待去购买')
-      else:
-        raise ValueError("找不到立即购买或去购买")
-    else:
-      self.d( text='立即购买').click()
-    log.info(f"specs: {specs}")
-    time.sleep(1)
+    # if self.d( text='加入购物车').wait(timeout=5):
+    #   self.d( text='加入购物车').click()
+    # log.info(f"specs: {specs}")
+    # time.sleep(1)
+
+    if not self.click('可选'):
+        if not self.click('已选'):
+          if not self.click('请选择:'):
+            raise ValueError("找不到进入购买列表的按钮")
 
 
     #大力向下滑动，屏幕向上滚动，避免前面商品已经划到底部
@@ -370,38 +395,80 @@ class Taobao(Base):
     time.sleep(1)  # 等待页面滚动完成
 
 
+    # info = self.d.app_info('com.taobao.taobao')
+    # if not info:
+    #     raise Exception("淘宝未安装")
+    
+    # app_version=info['versionName']
+
 
     
     for spec in specs:
-      text = spec
-      textMatches = None
-      # 如果 spec 是 ^ 开头，则认为是正则表达式
-      if spec.startswith('^'):
-        textMatches = spec
-        text = None
-      if self.scroll_up_until(
-        lambda: self.exists(text=text, textMatches=textMatches),
-        max_times=3,
-        scale=0.5
-      ):
-        if not self.click(text=text, textMatches=textMatches):
-          raise ValueError(f"找不到商品规格: {spec}")
-        if not self.exists('免密支付'):
-          log.info("可能之前选中了，现在反而是不选中了, 重新选回来")
-          if not self.click(text=text, textMatches=textMatches):
-            raise ValueError(f"找不到商品规格: {spec}")
-          
-    if not self.click('免密支付'):
-      raise ValueError("找不到免密支付")
-    self.sleep(8, '等待免密支付')
-    if self.exists('支付成功'):
-      return True
-    
-    self.sleep(5, '等待免密支付')
-    if self.exists('支付成功'):
-      return True
+      # text = spec
+      # textMatches = None
+      # # 如果 spec 是 ^ 开头，则认为是正则表达式
+      # if spec.startswith('^'):
+      #   textMatches = spec
+      #   text = None
+      # if self.scroll_up_until(
+      #   lambda: self.exists(text=text, textMatches=textMatches),
+      #   max_times=3,
+      #   scale=0.5
+      # ):
+      #   if not self.click(text=text, textMatches=textMatches):
+      #     raise ValueError(f"找不到商品规格: {spec}")
+      #   if not self.exists('免密支付'):
+      #     log.info("可能之前选中了，现在反而是不选中了, 重新选回来")
+      #     if not self.click(text=text, textMatches=textMatches):
+      #       raise ValueError(f"找不到商品规格: {spec}")
+      # if not self.click('免密支付'):
+      #   raise ValueError("找不到免密支付")
+
+      #用元素的方法
+      # 尝试3次查找和点击元素
+      for i in range(5):
+          if self.d(description='可选 '+spec).wait(timeout=3):
+              self.d(description='可选 '+spec).click()
+              break
+          elif self.d(description='已选中 '+spec).wait(timeout=3):
+              # 已选中则无需操作
+              break
+          else:
+              # 向下滑动一点
+              screen_size = self.d.window_size()
+              self.d.swipe(
+                  screen_size[0] * 0.5,  # 起点x：屏幕中间
+                  screen_size[1] * 0.6,  # 起点y：屏幕中间偏下
+                  screen_size[0] * 0.5,  # 终点x：与起点相同 
+                  screen_size[1] * 0.4,  # 终点y：屏幕中间偏上
+                  duration=0.1  # 快速滑动
+              )
+              time.sleep(0.5)  # 等待滑动完成
+
+    # #选完后回返回主页，然后点击
+    # self.back_until()
+    # #判断是否有description中包含"已选"元素的，如果有则点击
+    # if not self.click('已选:'):
+    #   return False
+    if self.d( text='立即购买').wait(timeout=5):
+      self.d( text='立即购买').click()
     else:
       return False
+    
+    if self.d( description='提交订单').wait(timeout=5):
+      self.d( description='提交订单').click()
+    else:
+      return False
+      
+
+
+
+    
+    for i in range(6):
+      self.sleep(2, '等待免密支付')
+      if self.exists('支付成功'):
+        return True
+    return False
 
 
   def buy_goods(self, params: Dict[str, Any]):

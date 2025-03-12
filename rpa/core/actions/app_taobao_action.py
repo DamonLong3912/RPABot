@@ -21,7 +21,7 @@ class TaobaoIntentAction(BaseAction):
         logger.info(f"执行命令: {cmd}")
         d.shell(cmd)
         # 等待淘宝启动
-        if not  d( text='立即购买').wait(timeout=10):
+        if not  d( text='加入购物车').wait(timeout=10):
             raise Exception("进入淘宝商店失败")
 
 
@@ -36,6 +36,8 @@ class TaobaoSearchAction(BaseAction):
 class TaobaoPayListAction(BaseAction):
     """淘宝选购商品支付操作动作"""
     def execute(self, params: Dict[str, Any]) -> None:
+
+
         taobao = Taobao(adb_address=self.bot.device_ip)
         taobao.params = params
         urls = taobao.buy_goods(params)
@@ -59,8 +61,8 @@ class TaobaoPayListAction(BaseAction):
                 "orderStatus": 11
             }
             
-            url = 'https://robot.mbmzone.com/guangqi-ai/api/rpa/putOrder'
-            # url = 'http://localhost:8088/guangqi-ai/api/rpa/putOrder'
+            url = self.bot.config.get('remote_api','https://robot.mbmzone.com/guangqi-ai')+'/api/rpa/putOrder'
+            #url = 'http://localhost:8088/guangqi-ai/api/rpa/putOrder'
             
             # 发送POST请求上报数据
             response = requests.post(url, json=data)
