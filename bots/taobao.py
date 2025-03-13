@@ -455,11 +455,13 @@ class Taobao(Base):
     else:
       return False
     
-    if self.d( description='提交订单').wait(timeout=5):
-      self.d( description='提交订单').click()
+    if self.d( description='免密支付').wait(timeout=5):
+      self.d( description='免密支付').click()
     else:
-      if not self.click('免密支付',index=1):
-        raise ValueError("找不到免密支付")
+      if self.d( description='提交订单').wait(timeout=5):
+        self.d( description='提交订单').click()
+      else:
+        raise ValueError("找不到免密支付、提交订单按钮")
       
 
 
