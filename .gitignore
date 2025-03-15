@@ -65,8 +65,5 @@ scripts/
 dumps/
 hierarchy_dumps/
 
-# config
-config.yaml
-database.yaml
 
 tools/platform-tools/

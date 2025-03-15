@@ -1,0 +1,30 @@
+# 全局配置
+log:
+  level: "DEBUG"
+  path: "logs"
+
+# 数据库配置
+database:
+  host: localhost
+  port: 3306
+  user: your_username
+  password: your_password
+  database: rpa_db
+
+# 其他全局配置
+assets_dir: "assets"
+
+# url配置
+base_url: "http://localhost:5000"  # API基础URL
+remote_api: "https://robot.mbmzone.com/guangqi-ai"  # API基础URL
+
+# 轮询配置
+poller:
+  auto_start: true  # 是否自动启动
+  polling_interval: 2  # 轮询间隔（秒）
+  max_retries: 3  # 最大重试次数
+  retry_delay: 5  # 重试延迟（秒）
+  api_url: "/api/rpa/getAwaitOrder"  # API路径，将与base_url拼接
+
+
+
